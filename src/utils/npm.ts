@@ -1,11 +1,16 @@
 import url from 'url';
 import https, { RequestOptions } from 'https';
+import path from 'path';
+import type { Transform } from 'stream';
 import type { IncomingMessage } from 'http';
+import tar from 'tar-stream';
 import gunzip from 'gunzip-maybe';
 import { LRUCache } from 'lru-cache';
 import semver from 'semver';
 
 import bufferStream from './bufferStream';
+import getContentType from './getContentType';
+import getIntegrity from './getIntegrity';
 
 const npmRegistryURL =
   process.env.NPM_REGISTRY_URL || 'https://registry.npmjs.org';
@@ -179,7 +184,7 @@ export async function getPackageConfig(
   packageName: string,
   version: string,
   log: typeof console
-) {
+): Promise<Record<string, any> | null> {
   const cacheKey = `config-${packageName}-${version}`;
   const cacheValue = cache.get(cacheKey);
 
@@ -210,13 +215,11 @@ export async function getPackage(
     ? packageName.split('/')[1]
     : packageName;
   const pkgConfig = await getPackageConfig(packageName, version, log);
-  const tarballURL = pkgConfig.dist
-    ? pkgConfig.dist.tarball
+  const tarballURL = pkgConfig?.dist
+    ? pkgConfig?.dist?.tarball
     : `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`;
 
   log.debug('Fetching package for %s from %s', packageName, tarballURL);
-
-  // return fetch(tarballURL)
 
   const { hostname, pathname } = url.parse(tarballURL);
   const options = {
@@ -236,8 +239,7 @@ export async function getPackage(
   if (res.statusCode === 404) {
     return null;
   }
-
-  const content = await bufferStream(res);
+  const content = (await bufferStream(res)).toString('utf-8');
 
   log.error(
     'Error fetching tarball for %s@%s (status: %s)',
@@ -270,4 +272,129 @@ export async function resolveVersion(
   }
 
   return null;
+}
+
+/**
+ * Search the given tarball for entries that match the given name.
+ * Follows node's resolution algorithm.
+ * https://nodejs.org/api/modules.html#modules_all_together
+ */
+export function searchEntries(stream: Transform, filename: string) {
+  // filename = /some/file/name.js or /some/dir/name
+  type SearchResult = {
+    foundEntry: {
+      name?: string;
+      path?: string;
+      type?: tar.Headers['type'];
+      contentType?: string;
+      integrity?: string;
+      lastModified?: string;
+      size?: number;
+      content?: any;
+    };
+    matchingEntries: Record<
+      string,
+      {
+        path?: string;
+        name?: string;
+        type?: tar.Headers['type'];
+      }
+    >;
+  };
+  return new Promise<SearchResult>((accept, reject) => {
+    const jsEntryFilename = `${filename}.js`;
+    const jsonEntryFilename = `${filename}.json`;
+
+    const matchingEntries: SearchResult['matchingEntries'] = {};
+    let foundEntry: SearchResult['foundEntry'];
+
+    if (filename === '/') {
+      foundEntry = matchingEntries['/'] = { name: '/', type: 'directory' };
+    }
+
+    stream
+      .pipe(tar.extract())
+      .on('error', reject)
+      .on('entry', async (header, stream, next) => {
+        const entry: SearchResult['foundEntry'] = {
+          // Most packages have header names that look like `package/index.js`
+          // so we shorten that to just `index.js` here. A few packages use a
+          // prefix other than `package/`. e.g. the firebase package uses the
+          // `firebase_npm/` prefix. So we just strip the first dir name.
+          path: header.name.replace(/^[^/]+/g, ''),
+          type: header.type
+        };
+
+        // Skip non-files and files that don't match the entryName.
+        if (entry.type !== 'file' || !entry?.path?.startsWith(filename)) {
+          stream.resume();
+          stream.on('end', next);
+          return;
+        }
+
+        matchingEntries[entry.path] = entry;
+
+        // Dynamically create "directory" entries for all directories
+        // that are in this file's path. Some tarballs omit these entries
+        // for some reason, so this is the "brute force" method.
+        let dir = path.dirname(entry.path);
+        while (dir !== '/') {
+          if (!matchingEntries[dir]) {
+            matchingEntries[dir] = { name: dir, type: 'directory' };
+          }
+          dir = path.dirname(dir);
+        }
+
+        if (
+          entry.path === filename ||
+          // Allow accessing e.g. `/index.js` or `/index.json`
+          // using `/index` for compatibility with npm
+          entry.path === jsEntryFilename ||
+          entry.path === jsonEntryFilename
+        ) {
+          if (foundEntry) {
+            if (
+              foundEntry.path !== filename &&
+              (entry.path === filename ||
+                (entry.path === jsEntryFilename &&
+                  foundEntry.path === jsonEntryFilename))
+            ) {
+              // This entry is higher priority than the one
+              // we already found. Replace it.
+              delete foundEntry.content;
+              foundEntry = entry;
+            }
+          } else {
+            foundEntry = entry;
+          }
+        }
+
+        try {
+          const content = await bufferStream(stream);
+
+          entry.contentType = getContentType(entry.path);
+          entry.integrity = getIntegrity(content);
+          entry.lastModified = header.mtime!.toUTCString();
+          entry.size = content.length;
+
+          // Set the content only for the foundEntry and
+          // discard the buffer for all others.
+          if (entry === foundEntry) {
+            entry.content = content;
+          }
+
+          next();
+        } catch (error) {
+          next(error);
+        }
+      })
+      .on('finish', () => {
+        accept({
+          // If we didn't find a matching file entry,
+          // try a directory entry with the same name.
+          foundEntry: foundEntry || matchingEntries[filename] || null,
+          matchingEntries: matchingEntries
+        });
+      });
+  });
 }
