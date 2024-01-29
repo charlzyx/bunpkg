@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { createSearch, setMetaHeaders } from "../utils/content";
-import { disk } from "../utils/disk";
+import { fileCache } from "../utils/disk";
 import { find } from "./find";
 import { meta } from "./meta";
 import { parse } from "./parse";
@@ -22,7 +22,7 @@ export const router = (app: Elysia) =>
 
       const cacheKey = esm ? `/esm${path}` : path;
 
-      const maybe = await disk.read(cacheKey);
+      const maybe = await fileCache.read(cacheKey);
 
       if (maybe) {
         const resp = new Response(maybe.file);

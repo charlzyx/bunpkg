@@ -1,6 +1,6 @@
 import gunzip from "gunzip-maybe";
 import type { IncomingMessage } from "http";
-import path, { extname } from "path";
+import nodepath from "path";
 import type { Transform } from "stream";
 import tar from "tar-stream";
 import { IFileMeta, getContentType, getIntegrity } from "./content";
@@ -19,7 +19,7 @@ export const promiseifyStream = (stream: Transform | IncomingMessage) => {
 export const setMetaHeaders = (resp: Response, meta: IFileMeta) => {
   const tags = ["file"];
 
-  const ext = extname(meta.path!).substr(1);
+  const ext = nodepath.extname(meta.path!).substr(1);
   if (ext) {
     tags.push(`${ext}-file`);
   }
@@ -79,12 +79,12 @@ export const search = async (tarball: IncomingMessage, filename: string) => {
         // Dynamically create "directory" entries for all directories
         // that are in this file's path. Some tarballs omit these entries
         // for some reason, so this is the "brute force" method.
-        let dir = path.dirname(entry.path);
+        let dir = nodepath.dirname(entry.path);
         while (dir !== "/") {
           if (!matchingEntries[dir]) {
             matchingEntries[dir] = { name: dir, type: "directory" };
           }
-          dir = path.dirname(dir);
+          dir = nodepath.dirname(dir);
         }
 
         if (
@@ -143,7 +143,7 @@ export const search = async (tarball: IncomingMessage, filename: string) => {
 
 /** for file */
 export const findMatchEntry = (
-  tarboll: IncomingMessage,
+  tarball: IncomingMessage,
   /**
    * filename = /some/file/name.js
    */
@@ -152,7 +152,7 @@ export const findMatchEntry = (
   return new Promise((accept, reject) => {
     let foundEntry: IFileMeta | null = null;
 
-    tarboll
+    tarball
       .pipe(gunzip())
       .pipe(tar.extract())
       .on("error", reject)
@@ -226,12 +226,12 @@ export const findMatchEntries = (
         // Dynamically create "directory" entries for all subdirectories
         // in this entry's path. Some tarballs omit directory entries for
         // some reason, so this is the "brute force" method.
-        let dir = path.dirname(entry.path!);
+        let dir = nodepath.dirname(entry.path!);
         while (dir !== "/") {
           if (!entries[dir] && dir.startsWith(filename)) {
             entries[dir] = { path: dir, type: "directory" };
           }
-          dir = path.dirname(dir);
+          dir = nodepath.dirname(dir);
         }
 
         // Ignore non-files and files that don't match the prefix.
@@ -275,7 +275,9 @@ export const findEntryInEntries = (
     metadata.size = entry.size;
   } else if (entry.type === "directory") {
     metadata.files = Object.keys(entries)
-      .filter((key) => entry.path !== key && path.dirname(key) === entry.path)
+      .filter(
+        (key) => entry.path !== key && nodepath.dirname(key) === entry.path,
+      )
       .map((key) => entries[key])
       .map((e) => findEntryInEntries(e, entries));
   }

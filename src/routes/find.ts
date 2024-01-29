@@ -1,10 +1,8 @@
 import { setMetaHeaders } from "../utils/content";
 import { searchPackageEntry } from "../utils/npm";
 import { Context } from "elysia";
-import { disk } from "../utils/disk";
+import { fileCache } from "../utils/disk";
 import { esm } from "../experimental/esm";
-import { URL } from "whatwg-url";
-import { BunPkgConfig } from "../config";
 
 export const find = async (
   { path, query, set, request }: Context,
@@ -48,7 +46,7 @@ export const find = async (
       if (cache) {
         // bunpkg.com/:package@:version/:file
         const cachekey = `/${packageName}@${packageVersion}${realname}`;
-        disk.write(cachekey, cache, entry);
+        fileCache.write(cachekey, cache, entry);
       }
       setMetaHeaders(resp, entry);
 

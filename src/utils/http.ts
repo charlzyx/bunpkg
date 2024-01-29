@@ -1,5 +1,6 @@
-import type { IncomingMessage } from "http";
+import { IncomingMessage } from "http";
 import https, { RequestOptions } from "https";
+import http from "http";
 import { LRUCache } from "lru-cache";
 import { BunPkgConfig } from "../config";
 import { SIZE, TTL } from "./helper";
@@ -18,13 +19,27 @@ export const httpCache = new LRUCache<string, string>({
 // is stream can shared ?
 const conMap = {} as Record<string, Promise<IncomingMessage> | void>;
 
+export const tgz = (name: string) => {
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    return http
+      .get(
+        {
+          hostname: "127.0.0.1",
+          port: 45456,
+          path: `/tgz/${name}`,
+        },
+        resolve,
+      )
+      .on("error", reject);
+  });
+};
 export const get = (options: RequestOptions) => {
-  const conKey = options.hostname! + options.path;
+  const conKey = options.host! + options.path;
   const maybe = conMap[conKey];
   if (maybe) {
     return maybe;
   } else {
-    const p = new Promise<IncomingMessage>((accept, reject) => {
+    const p = new Promise<IncomingMessage>((resolve, reject) => {
       https
         .get(
           {
@@ -37,7 +52,7 @@ export const get = (options: RequestOptions) => {
                 `Bearer ${BunPkgConfig.npmAuthToken}`,
             },
           },
-          accept,
+          resolve,
         )
         .on("error", reject);
     }).finally(() => {

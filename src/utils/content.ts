@@ -1,4 +1,4 @@
-import { basename, extname } from "path";
+import nodepath from "node:path";
 
 import mime from "mime";
 import SRIToolbox from "sri-toolbox";
@@ -36,7 +36,7 @@ mime.define(
 const textFiles = /\/?(\.[a-z]*rc|\.git[a-z]*|\.[a-z]*ignore|\.lock)$/i;
 
 export const getContentType = (filename: string) => {
-  const name = basename(filename);
+  const name = nodepath.basename(filename);
 
   return textFiles.test(name)
     ? "text/plain"
@@ -54,7 +54,7 @@ export const getIntegrity = (data: string) => {
 export const setMetaHeaders = (resp: Response, meta: IFileMeta) => {
   const tags = ["file"];
 
-  const ext = extname(meta.path!).substr(1);
+  const ext = nodepath.extname(meta.path!).substr(1);
   if (ext) {
     tags.push(`${ext}-file`);
   }

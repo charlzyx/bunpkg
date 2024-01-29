@@ -7,9 +7,8 @@ import {
   encodePackageName,
   isScopedPackageName,
 } from "./helper";
-import { get, httpCache } from "./http";
-import type { IncomingMessage } from "http";
-import { disk } from "./disk";
+import { get, tgz, httpCache } from "./http";
+import { tgzCache } from "./disk";
 import {
   findEntryInEntries,
   findMatchEntries,
@@ -36,7 +35,7 @@ const queryPackageInfo = async (packageName: string) => {
   const npmRegistryURL = BunPkgConfig.npmRegistryURL;
 
   const name = encodePackageName(packageName);
-  const infoURL = `${npmRegistryURL}/${name}`;
+  const infoURL = `${npmRegistryURL}/${name}`.replace(/\/\//, "/");
 
   console.debug("Fetching package info for %s from %s", packageName, infoURL);
 
@@ -156,40 +155,32 @@ export const queryPackageTarball = async (
   const npmRegistryURL = BunPkgConfig.npmRegistryURL;
   const tarballURL = pkgConfig?.dist
     ? pkgConfig?.dist?.tarball
-    : `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`;
+    : `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`.replace(
+        /\/\//,
+        "/",
+      );
 
-  let reason = null;
-  const got = async (tarballURL: string): Promise<IncomingMessage> => {
+  const tgzName = `${tarballName}-${version}.tgz`;
+
+  const cacheYou = await tgzCache.read(tgzName);
+  if (cacheYou) {
+    return tgz(tgzName);
+  } else {
     console.debug("Fetching package for %s from %s", packageName, tarballURL);
-
-    const { hostname, pathname } = new URL(tarballURL);
-
-    const res = await get({
-      hostname,
-      path: pathname,
-    });
-
-    if (res.statusCode === 200) {
-      return res;
+    try {
+      const buffer = await fetch(tarballURL);
+      tgzCache.write(tgzName, buffer as any, {});
+      return tgz(tgzName);
+    } catch (error) {
+      console.debug(
+        "Fetching error %s, for %s from %s",
+        error,
+        packageName,
+        tarballURL,
+      );
+      throw error;
     }
-
-    if (res.statusCode === 404) {
-      reason = `Not Found tarball for ${packageName}, version : ${version} (status: ${res.statusCode})`;
-
-      throw new Error(reason);
-    }
-
-    if (res.statusCode === 302) {
-      return got(res.headers.location!);
-    }
-
-    reason = `Error fetching tarball for ${packageName}, version : ${version} (status: ${res?.statusCode})`;
-
-    throw new Error(reason);
-  };
-
-  const res = await got(tarballURL);
-  return res;
+  }
 };
 
 export const searchPackageEntry = async (

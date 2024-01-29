@@ -30,10 +30,11 @@ export const home = `
 
 <body>
   <div class="content">
-    <h1><a href="https://github.com/charlzyx/bunpkg">BUNPKG</a></h1>
-    <div> bunpkg is an alternative of bunpkg, friendly for private deploy. </div>
+    <h1>BUNPKG</h1>
+    <div> bunpkg is an alternative of <a href="https://unpkg.com" >unpkg.com</a>, powered by <a href="https://bun.sh">bun</a>! friendly for private deploy and file cache supported.  <a href="https://github.com/charlzyx/bunpkg">github</a></a>
+    </div>
     <div id="doc">
-      <h2><code>bunpkg.com/:package@:version/:file</code></h2>
+      <h4><code>bunpkg.com/:package@:version/:file</code></h4>
       <div id="examples">
         <pre><code ><h2>Examples</h2>
   Using a fixed version:
@@ -61,8 +62,12 @@ export const home = `
   Return metadata about any file in a package as JSON (e.g./any/file?meta)
 
   ?module
-  Expands all “bare” import specifiers in JavaScript modules to bunpkg URLs. This feature is very experimental
-          <div id="sayhi"><pre><code>  &lt;script type="module" &gt;</code></pre></div>
+  Expands all “bare” import specifiers in JavaScript modules to bunpkg URLs. This feature is very experimental, for example ↓
+  
+  &lt;script type="module"  &gt;
+    import min from "http://bunpkg.com/lodash-es@4.17.21/min.js?module"
+  &lt;/script&gt;
+</code></pre></div>
       </code></pre>
       </div>
     </div>
@@ -70,15 +75,6 @@ export const home = `
   <script>
     const doc = document.querySelector("#doc");
     doc.innerHTML = doc.innerHTML.replace(/bunpkg/g, window.location.host)
-  </script>
-  <script type="module">
-  import min from "/lodash-es@4.17.21/min.js?module"
-    const hi = document.querySelector("#sayhi");
-    setTimeout(() => {
-      hi.innerHTML = "<pre><code>   <a>sayhi!</a> from script module i am " + window.location.host
-      + "/lodash-es@4.17.21/min.js?module </code></pre>" 
-    }, 1000)
-
   </script>
 </body>
 
