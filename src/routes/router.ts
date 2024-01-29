@@ -28,11 +28,8 @@ export const router = (app: Elysia) =>
         const resp = new Response(maybe.file);
         setMetaHeaders(resp, maybe.meta);
         return resp;
-      } else if (esm) {
-        // TODO: by swc
       } else {
-        // umd
-        return find(ctx, info);
+        return find(ctx as any, info, cacheKey);
       }
     }
   });

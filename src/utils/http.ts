@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "http";
 import https, { RequestOptions } from "https";
 import { LRUCache } from "lru-cache";
+import { BunPkgConfig } from "../config";
 import { SIZE, TTL } from "./helper";
 
 const agent = new https.Agent({
@@ -29,6 +30,12 @@ export const get = (options: RequestOptions) => {
           {
             agent,
             ...options,
+            headers: {
+              ...options?.headers,
+              Authorization:
+                options?.headers?.authorization ||
+                `Bearer ${BunPkgConfig.npmAuthToken}`,
+            },
           },
           accept,
         )

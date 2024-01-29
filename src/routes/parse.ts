@@ -47,7 +47,26 @@ export const parse = async ({
    */
 
   if (!filename) {
-    if (
+    if (query.module != null) {
+      // See https://github.com/rollup/rollup/wiki/pkg.module
+      filename = packageConfig.module || packageConfig["jsnext:main"];
+
+      if (!filename) {
+        // https://nodejs.org/api/esm.html#esm_code_package_json_code_code_type_code_field
+        if (packageConfig.type === "module") {
+          // Use whatever is in pkg.main or index.js
+          filename = packageConfig.main || "/index.js";
+        } else if (packageConfig.main && /\.mjs$/.test(packageConfig.main)) {
+          // Use .mjs file in pkg.main
+          filename = packageConfig.main;
+        }
+      }
+
+      if (!filename) {
+        set.status = 404;
+        throw new Error(`Package ${packageSpec} does not contain an ES module`);
+      }
+    } else if (
       query.main &&
       packageConfig[query.main] &&
       typeof packageConfig[query.main] === "string"

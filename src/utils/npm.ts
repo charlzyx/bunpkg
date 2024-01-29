@@ -8,6 +8,8 @@ import {
   isScopedPackageName,
 } from "./helper";
 import { get, httpCache } from "./http";
+import type { IncomingMessage } from "http";
+import { disk } from "./disk";
 import {
   findEntryInEntries,
   findMatchEntries,
@@ -156,30 +158,38 @@ export const queryPackageTarball = async (
     ? pkgConfig?.dist?.tarball
     : `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`;
 
-  console.debug("Fetching package for %s from %s", packageName, tarballURL);
-
-  const { hostname, pathname } = new URL(tarballURL);
-
-  const res = await get({
-    hostname,
-    path: pathname,
-  });
-
   let reason = null;
+  const got = async (tarballURL: string): Promise<IncomingMessage> => {
+    console.debug("Fetching package for %s from %s", packageName, tarballURL);
 
-  if (res.statusCode === 200) {
-    return res;
-  }
+    const { hostname, pathname } = new URL(tarballURL);
 
-  if (res.statusCode === 404) {
-    reason = `Not Found tarball for ${packageName}, version : ${version} (status: ${res.statusCode})`;
+    const res = await get({
+      hostname,
+      path: pathname,
+    });
+
+    if (res.statusCode === 200) {
+      return res;
+    }
+
+    if (res.statusCode === 404) {
+      reason = `Not Found tarball for ${packageName}, version : ${version} (status: ${res.statusCode})`;
+
+      throw new Error(reason);
+    }
+
+    if (res.statusCode === 302) {
+      return got(res.headers.location!);
+    }
+
+    reason = `Error fetching tarball for ${packageName}, version : ${version} (status: ${res?.statusCode})`;
 
     throw new Error(reason);
-  }
+  };
 
-  reason = `Error fetching tarball for ${packageName}, version : ${version} (status: ${res.statusCode})`;
-
-  throw new Error(reason);
+  const res = await got(tarballURL);
+  return res;
 };
 
 export const searchPackageEntry = async (

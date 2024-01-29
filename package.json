@@ -5,6 +5,8 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
+    "@elysiajs/cors": "^0.8.0",
+    "@elysiajs/html": "^0.8.0",
     "elysia": "latest",
     "gunzip-maybe": "^1.4.2",
     "lru-cache": "^10.2.0",

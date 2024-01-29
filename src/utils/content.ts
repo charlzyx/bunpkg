@@ -59,7 +59,7 @@ export const setMetaHeaders = (resp: Response, meta: IFileMeta) => {
     tags.push(`${ext}-file`);
   }
   resp.headers.set("Cross-Origin-Resource-Policy", "cross-origin");
-  resp.headers.set("Content-Type", getContentType(meta.contentType!));
+  resp.headers.set("Content-Type", meta.contentType!);
   resp.headers.set("Content-Length", meta.size?.toString()!);
   resp.headers.set("Cache-Control", "public, max-age=31536000");
   resp.headers.set("Last-Modified", meta.lastModified!);

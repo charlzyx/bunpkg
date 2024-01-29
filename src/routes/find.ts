@@ -1,11 +1,23 @@
 import { setMetaHeaders } from "../utils/content";
 import { searchPackageEntry } from "../utils/npm";
+import { Context } from "elysia";
 import { disk } from "../utils/disk";
-import { WithPkgInfo } from "./type";
+import { esm } from "../experimental/esm";
+import { URL } from "whatwg-url";
+import { BunPkgConfig } from "../config";
 
-export const find: WithPkgInfo<Response> = async (
-  { path, query, set },
-  { packageName, packageVersion, filename },
+export const find = async (
+  { path, query, set, request }: Context,
+  {
+    packageName,
+    packageVersion,
+    filename,
+  }: {
+    packageName: string;
+    packageVersion: string;
+    filename: string;
+  },
+  cacheKey: string,
 ) => {
   /**
    * --- STEP4. find file in tarball
@@ -19,15 +31,29 @@ export const find: WithPkgInfo<Response> = async (
       filename,
     );
 
-    const resp = new Response(entry.content);
-    if (entry.content) {
-      // bunpkg.com/:package@:version/:file
-      const cachekey = `/${packageName}@${packageVersion}${realname}`;
-      disk.write(cachekey, entry.content, entry);
-    }
-    setMetaHeaders(resp, entry);
+    const isModule = "module" in query;
+    const cache = entry.content;
+    if (isModule) {
+      const origin = entry.content.toString();
+      const bunpkgESM = esm(
+        `${packageName}@${packageVersion}/${filename}`,
+        origin,
+      );
 
-    return resp;
+      const resp = new Response(bunpkgESM);
+      setMetaHeaders(resp, entry);
+      return resp;
+    } else {
+      const resp = new Response(entry.content);
+      if (cache) {
+        // bunpkg.com/:package@:version/:file
+        const cachekey = `/${packageName}@${packageVersion}${realname}`;
+        disk.write(cachekey, cache, entry);
+      }
+      setMetaHeaders(resp, entry);
+
+      return resp;
+    }
   } catch (error: any) {
     set.status = 404;
     throw new Error(
