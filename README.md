@@ -1,14 +1,13 @@
 # BUNPKG
+> bunpkg is an alternative for, powered by bun! friendly for private deploy and file cache supported.
 
-> bunpkg is an alternative for [unpkg](https://unpkg.com/), powered by [bun](https://bun.sh)! friendly for private deploy and file cache supported.
 
-## Features
+## Diff unpkg
 
-| feture                                                                                          | bunpkg                                                                  | unpkg   |
+| feture                                                                                          | bunpkg                                                                 | unpkg    |
 | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------- |
 | 302 supported, example [npmmirror.com](https://registry.npmmirror.com/react/-/react-18.2.0.tgz) | ✅                                                                     | 🚫       |
-| .tgz file cache                                                                                 | ✅ does nginx better, aha?                                             | 🚫       |
-| file cache                                                                                      | ✅                                                                     | 🚫       |
+|  Local File Cache                                                                                 | ✅ does nginx better, aha?                                             | 🚫       |
 | private Authorization header                                                                    | ✅                                                                     | 🚫       |
 | Browser UI                                                                                      | 🚫                                                                     | ✅       |
 | esm                                                                                             | ✅ by [Bun.Transpiler](https://bun.sh/docs/api/transpiler#scanimports) | ✅ babel |
@@ -20,30 +19,30 @@
 ```bash
 NPM_REGISTRY_URL=https://registry.npmmirror.com/
 PORT=4567
-HOST_BINDING=127.0.0.1
+HOST_NAME=127.0.0.1
 CORS_ORIGIN=*
-CACHE_DIR=/cache/file
-TGZ_CACHE_DIR=/cache/tgz
+CACHE_DIR=/cache
+CACHE_GIB=4
 NPM_AUTH_TOKEN=
 ```
 
 ## docker
 
 ```bash
-# docker mode supported env
+# docker mode env is limited to 
 # NPM_REGISTRY_URL=https://registry.npmmirror.com/
 # CORS_ORIGIN=*
+# CACHE_GIB=4
 # NPM_AUTH_TOKEN=
 docker run -i -t -p 4567:4567 chaogpt/bunpkg
-docker run --env-file .env -i -t -p 4567:4567 chaogpt/bunpkg
+docker run --env-file .env -i -t -p 4567:4567 -v /cache:./cache chaogpt/bunpkg
 ```
 
 ## Roadmap
 
-- [] persistence cache
-- [] live config manager
-- [] statistics
-- [] programing use and config file
+- [x] Persistence Cache (by sqlite)
+- [] Live Config Manager
+- [] Data Statistics
 - [] Browser UI
 
 ## Dev
@@ -54,6 +53,11 @@ bun dev
 # open http://localhost:4567
 ```
 
+## ScreenShot
+
+![bunpkg](./bunpkg.png)
+
 ## Powered by
 
 - [Elysia](https://elysiajs.com/)
+- [bun.sh](https://bun.sh/)

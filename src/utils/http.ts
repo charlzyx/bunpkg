@@ -13,7 +13,7 @@ export const httpCache = new LRUCache<string, string>({
   max: 1000,
   ttl: TTL.SECONDS(5),
   sizeCalculation: (value) => Buffer.byteLength(value as any) || 1,
-  maxSize: SIZE.Gb(1),
+  maxSize: SIZE.Gib(1),
 });
 
 // is stream can shared ?

@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { createSearch, setMetaHeaders } from "../utils/content";
-import { fileCache } from "../utils/disk";
+import { SqliteCache } from "../utils/sqlite-cache";
 import { find } from "./find";
 import { meta } from "./meta";
 import { parse } from "./parse";
@@ -22,11 +22,11 @@ export const router = (app: Elysia) =>
 
       const cacheKey = esm ? `/esm${path}` : path;
 
-      const maybe = await fileCache.read(cacheKey);
+      const maybe = await SqliteCache.file.read(cacheKey);
 
       if (maybe) {
         const resp = new Response(maybe.file);
-        setMetaHeaders(resp, maybe.meta);
+        setMetaHeaders(resp, maybe?.meta as any);
         return resp;
       } else {
         return find(ctx as any, info, cacheKey);

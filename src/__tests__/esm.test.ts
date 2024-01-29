@@ -1,4 +1,4 @@
-import { esm } from "./esm";
+import { esm } from "../experimental/esm";
 
 import { describe, expect, it } from "bun:test";
 

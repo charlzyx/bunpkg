@@ -6,8 +6,8 @@ export const BunPkgConfig = {
   get PORT() {
     return process.env.PORT ?? "4567";
   },
-  get HOST_BINDING() {
-    return process.env.HOST_BINDING ?? "0.0.0.0";
+  get HOST_NAME() {
+    return process.env.HOST_NAME ?? "0.0.0.0";
   },
   cors: {
     origin: /^\//.test(Bun.env.CORS_ORIGIN ?? "")
@@ -17,16 +17,15 @@ export const BunPkgConfig = {
   get cacheDir() {
     return Bun.env.CACHE_DIR || path.resolve(os.tmpdir(), "bunpkg_cache");
   },
-  get tgzCacheDir() {
-    return (
-      Bun.env.TGZ_CACHE_DIR || path.resolve(os.tmpdir(), "bunpkg_tgz_cache")
-    );
-  },
-  get npmAuthToken() {
-    return Bun.env.NPM_AUTH_TOKEN;
+  get cacheSize() {
+    const maybe = Number(Bun.env.CACHE_GIB);
+    return Number.isNaN(maybe) ? 4 : maybe;
   },
   set cacheDir(dir: string) {
     Bun.env.CACHEW_DIR = dir;
+  },
+  get npmAuthToken() {
+    return Bun.env.NPM_AUTH_TOKEN;
   },
   get npmRegistryURL() {
     return Bun.env.NPM_REGISTRY_URL || "https://registry.npmjs.org";

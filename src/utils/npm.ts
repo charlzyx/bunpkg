@@ -8,7 +8,7 @@ import {
   isScopedPackageName,
 } from "./helper";
 import { get, tgz, httpCache } from "./http";
-import { tgzCache } from "./disk";
+import { SqliteCache } from "./sqlite-cache";
 import {
   findEntryInEntries,
   findMatchEntries,
@@ -63,8 +63,6 @@ const queryPackageInfo = async (packageName: string) => {
   const reason = `Error fetching info for ${packageName} (status: ${res.statusCode}`;
 
   console.error(reason);
-  // const content = (await promiseifyStream(res)).toString('utf-8');
-  // console.log(content)
 
   return null;
 };
@@ -162,14 +160,14 @@ export const queryPackageTarball = async (
 
   const tgzName = `${tarballName}-${version}.tgz`;
 
-  const cacheYou = await tgzCache.read(tgzName);
+  const cacheYou = await SqliteCache.tgz.read(tgzName);
   if (cacheYou) {
     return tgz(tgzName);
   } else {
     console.debug("Fetching package for %s from %s", packageName, tarballURL);
     try {
       const buffer = await fetch(tarballURL);
-      tgzCache.write(tgzName, buffer as any, {});
+      SqliteCache.tgz.write(tgzName, buffer as any, {});
       return tgz(tgzName);
     } catch (error) {
       console.debug(

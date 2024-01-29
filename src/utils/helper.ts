@@ -86,6 +86,7 @@ export const TTL = {
 };
 
 export const SIZE = {
-  Kb: (x = 1) => 1024 * x,
-  Gb: (x = 1) => 1024 * 1024 * x,
+  Kib: (x = 1) => Math.pow(2, 10),
+  Mib: (x = 1) => Math.pow(2, 20),
+  Gib: (x = 1) => Math.pow(2, 30),
 };

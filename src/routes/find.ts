@@ -1,7 +1,7 @@
 import { setMetaHeaders } from "../utils/content";
 import { searchPackageEntry } from "../utils/npm";
 import { Context } from "elysia";
-import { fileCache } from "../utils/disk";
+import { SqliteCache } from "../utils/sqlite-cache";
 import { esm } from "../experimental/esm";
 
 export const find = async (
@@ -44,9 +44,7 @@ export const find = async (
     } else {
       const resp = new Response(entry.content);
       if (cache) {
-        // bunpkg.com/:package@:version/:file
-        const cachekey = `/${packageName}@${packageVersion}${realname}`;
-        fileCache.write(cachekey, cache, entry);
+        SqliteCache.file.write(cacheKey, cache, entry);
       }
       setMetaHeaders(resp, entry);
 

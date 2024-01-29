@@ -4,7 +4,7 @@ import { cors } from "@elysiajs/cors";
 
 import { BunPkgConfig } from "./config";
 import path from "path";
-import { home, err } from "./templates";
+import { err } from "./templates";
 
 // static file server
 Bun.serve({
@@ -13,7 +13,8 @@ Bun.serve({
   async fetch(req) {
     const pathname = new URL(req.url).pathname;
     const fileAt = path.join(
-      BunPkgConfig.tgzCacheDir,
+      BunPkgConfig.cacheDir,
+      "tgz",
       pathname.replace(/^\/tgz/, ""),
     );
     return new Response(Bun.file(fileAt));
@@ -32,7 +33,7 @@ new Elysia()
     return "TODO: file browser";
   })
   .get("/", () => {
-    const resp = new Response(home);
+    const resp = new Response(Bun.file("src/templates/BUNPKG.html"));
     resp.headers.set("Content-Type", "text/html; charset=utf8");
     return resp;
   })
@@ -46,12 +47,12 @@ new Elysia()
     return resp;
   })
   .listen({
-    hostname: BunPkgConfig.HOST_BINDING,
+    hostname: BunPkgConfig.HOST_NAME,
     port: BunPkgConfig.PORT,
   });
 
 console.log(
-  `BUNPKG is Running at http://${BunPkgConfig.HOST_BINDING}:${BunPkgConfig.PORT}`,
+  `BUNPKG is Running at http://${BunPkgConfig.HOST_NAME}:${BunPkgConfig.PORT}`,
   "with BunConfig :\n",
   JSON.stringify(BunPkgConfig, null, 2),
 );

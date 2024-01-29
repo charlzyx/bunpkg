@@ -1,0 +1,121 @@
+---
+layout: landing
+---
+
+import { HomePage } from 'vocs/components'
+
+<HomePage.Root>
+  <HomePage.Logo />
+  <HomePage.Tagline>bunpkg is an alternative for unpkg. <br />but friendly for self-host deploy and file cache supported </HomePage.Tagline>
+  {/* <HomePage.Description>powered by bun! .</HomePage.Description> */}
+</HomePage.Root>
+
+- 💎 Local File Cache: tarboll and visited file LRU cache, powered by sqlite
+- 🌈 Private Package Supported: Agent with npmAuthToken for private npm packages.
+- 🚀 Powered by [Bun](https://bun.sh)! is fast!
+ 
+## Usage
+
+### Examples [*===* unpkg.com]
+
+Using a fixed version:
+
+- [bunpkg.com/react@16.7.0/umd/react.production.min.js](/react@16.7.0/umd/react.production.min.js)
+- [bunpkg.com/react-dom@16.7.0/umd/react-dom.production.min.js](/bunpkg.com/react-dom@16.7.0/umd/react-dom.production.min.js)
+
+You may also use a semver range or a tag instead of a fixed version number, or omit the version/tag entirely to use the latest tag.
+
+- [bunpkg.com/react@^16/umd/react.production.min.js](/react@^16/umd/react.production.min.js)
+- [bunpkg.com/react/umd/react.production.min.js](/react/umd/react.production.min.js)
+
+
+If you omit the file path (i.e. use a “bare” URL), unpkg will serve the file specified by the unpkg field in package.json, or fall back to main.
+
+- [bunpkg.com/jquery](/bunpkg.com/jquery)
+- [bunpkg.com/three](/bunpkg.com/three)
+
+🚧 Unsupported Now! Append a / at the end of a URL to view a listing of all the files in a package.
+
+- [bunpkg.com/react/](/bunpkg.com/react/)
+- [bunpkg.com/react-router/](/bunpkg.com/react-router/)
+
+### Query Parameters
+`?meta`
+
+Return metadata about any file in a package as JSON (e.g./any/file?meta)
+
+`?module`
+
+Expands all “bare” import specifiers in JavaScript modules to unpkg URLs. This feature is very experimental
+
+### HTTP Cache Behavior
+The CDN caches files based on their permanent URL, which includes the npm package version. This works because npm does not allow package authors to overwrite a package that has already been published with a different one at the same version number.
+
+Browsers are instructed (via the Cache-Control header) to cache assets indefinitely (1 year).
+
+URLs that do not specify a package version number redirect to one that does. This is the latest version when no version is specified, or the maxSatisfying version when a semver version is given. Redirects are cached for 10 minutes at the CDN, 1 minute in browsers.
+
+If you want users to be able to use the latest version when you cut a new release, the best policy is to put the version number in the URL directly in your installation instructions. This will also load more quickly because we won't have to resolve the latest version and redirect them.
+
+### Disk Cache Behavior
+
+Use `CACHE_DIR=./cache` or remap docker volumns `/cache` to watch how tarboll and file cache; File Cache Manager by sqlite, with LRU algorithm; 
+
+Default limit is `4Gib` for tarboll and files half by half shared. Your Can change it by `CACHE_GIB=4 #Gib `
+
+
+## Diff UNPKG
+
+| feture                                                                                          | bunpkg                                                                 | unpkg    |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------- |
+| 302 supported, example [npmmirror.com](https://registry.npmmirror.com/react/-/react-18.2.0.tgz) | ✅                                                                     | 🚫       |
+| Local File Cache                                                                                 | ✅ does nginx better, aha?                                             | 🚫       |
+| private Authorization header                                                                    | ✅                                                                     | 🚫       |
+| Browser UI                                                                                      | 🚫                                                                     | ✅       |
+| esm                                                                                             | ✅ by [Bun.Transpiler](https://bun.sh/docs/api/transpiler#scanimports) | ✅ babel |
+
+## .env
+
+> maybe?: config file and persistence
+
+```bash
+NPM_REGISTRY_URL=https://registry.npmmirror.com/
+PORT=4567
+HOST_NAME=127.0.0.1
+CORS_ORIGIN=*
+CACHE_DIR=/cache
+CACHE_GIB=4
+NPM_AUTH_TOKEN=
+```
+
+## docker
+
+```bash
+# docker mode supported env
+# NPM_REGISTRY_URL=https://registry.npmmirror.com/
+# CORS_ORIGIN=*
+# CACHE_GIB=4
+# NPM_AUTH_TOKEN=
+docker run -i -t -p 4567:4567 chaogpt/bunpkg
+docker run --env-file .env -i -t -p 4567:4567 -v /cache:./cache chaogpt/bunpkg
+```
+
+## Roadmap
+
+- [x] Persistence Cache (by sqlite)
+- [] Live Config Manager
+- [] Data Statistics
+- [] Browser UI
+
+## Dev
+
+```bash
+bun dev
+# then
+# open http://localhost:4567
+```
+
+## Powered by
+
+- [Elysia](https://elysiajs.com/)
+- [bun.sh](https://bun.sh/)

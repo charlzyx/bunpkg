@@ -1,8 +1,11 @@
 {
   "name": "bunpkg",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "bun run --watch src/index.ts"
+    "dev": "CACHE_DIR=./.cache bun run --watch src/index.ts",
+    "docs:dev": "vocs dev",
+    "docs:build": "vocs build"
   },
   "dependencies": {
     "@elysiajs/cors": "^0.8.0",
@@ -27,6 +30,7 @@
     "@types/tar-stream": "^3.1.3",
     "@types/validate-npm-package-name": "^4.0.2",
     "@types/whatwg-url": "^11.0.4",
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "vocs": "^1.0.0-alpha.30"
   }
 }

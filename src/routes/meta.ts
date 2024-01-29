@@ -5,8 +5,6 @@ export const meta: WithPkgInfo<Response> = async (
   { path, query, set },
   { packageName, packageVersion, filename },
 ) => {
-  /**
-   */
   set.headers["Cache-Control"] = "public, max-age=31536000"; // 1 year
   set.headers["Cache-Tag"] = "missing, missing-entry";
   try {
