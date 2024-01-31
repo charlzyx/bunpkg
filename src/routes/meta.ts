@@ -18,8 +18,7 @@ export const meta: WithPkgInfo<Response> = async (
   } catch (error: any) {
     set.status = 404;
     throw new Error(
-      error.toString() ||
-        `Cannot find an meta of ${filename} in ${packageName}@${packageVersion}`,
+      `Cannot find meta of ${filename} in ${packageName}@${packageVersion}. Case by ${error.toString()}`,
     );
   }
 };

@@ -1,4 +1,4 @@
-FROM oven/bun:alpine
+FROM oven/bun:slim
 # FROM oven/bun
 WORKDIR /app
 # RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories

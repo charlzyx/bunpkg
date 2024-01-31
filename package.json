@@ -10,6 +10,7 @@
   "dependencies": {
     "@elysiajs/cors": "^0.8.0",
     "@elysiajs/html": "^0.8.0",
+    "@elysiajs/jwt": "^0.8.0",
     "@elysiajs/static": "^0.8.1",
     "elysia": "latest",
     "gunzip-maybe": "^1.4.2",

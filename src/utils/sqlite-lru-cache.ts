@@ -64,6 +64,7 @@ export class SqliteLRUCache<Meta> {
     maxByteSize: maxSize = 1 * Math.pow(2, 30),
     onRemove = () => {},
   }: SqlCacheOptions<Meta>) {
+    console.log("🚀 ~ SqliteLRUCache<Meta> ~ database:", database);
     this.db = new Database(database ?? ":memory:", { create: true });
     this.maxLen = maxLen;
     this.maxByteSize = maxSize;

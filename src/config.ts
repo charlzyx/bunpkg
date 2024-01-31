@@ -10,11 +10,7 @@ export const BunPkgConfig = {
     return process.env.HOST_NAME ?? "0.0.0.0";
   },
   get origin() {
-    return (
-      process.env.ORIGIN ||
-      `${process.env.HOST_NAME}:${process.env.PORT}` ||
-      "0.0.0.0"
-    );
+    return process.env.ORIGIN || `http://localhost${process.env.PORT}`;
   },
   cors: {
     origin: /^\//.test(Bun.env.CORS_ORIGIN ?? "")
@@ -28,19 +24,40 @@ export const BunPkgConfig = {
     const maybe = Number(Bun.env.CACHE_GIB);
     return Number.isNaN(maybe) ? 4 : maybe;
   },
-  set cacheDir(dir: string) {
-    Bun.env.CACHEW_DIR = dir;
-  },
-  get npmAuthToken() {
-    return Bun.env.NPM_AUTH_TOKEN;
-  },
+
   get npmRegistryURL() {
     return (Bun.env.NPM_REGISTRY_URL || "https://registry.npmjs.org").replace(
       /\/$/,
       "",
     );
   },
-  set npmRegistryURL(neo: string) {
-    Bun.env.NPM_REGISTRY_URL = neo;
+  get npmAuthToken() {
+    return Bun.env.NPM_AUTH_TOKEN;
   },
+  get jwtSecret() {
+    return Bun.env.JWT_SECRET;
+  },
+  get jwtUserList() {
+    return (Bun.env.JWT_USERS || "").split(",").map((item) => item.trim());
+  },
+  // TODO: The list to ban some packages or scopes.
+  // banList: {
+  //   packages: ["@some_scope/package_name"],
+  //   scopes: [
+  //     {
+  //       name: "@your_scope",
+  //       excludes: ["package_name"],
+  //     },
+  //   ],
+  // },
+
+  // // TODO: The list to only allow some packages or scopes.
+  // allowList: {
+  //   packages: ["@some_scope/package_name"],
+  //   scopes: [
+  //     {
+  //       name: "@your_scope",
+  //     },
+  //   ],
+  // },
 };

@@ -41,6 +41,7 @@ export const search = async (tarball: IncomingMessage, filename: string) => {
   type SearchResult = {
     foundEntry: IFileMeta;
     matchingEntries: Record<string, IFileMeta>;
+    tried: string[];
   };
   return new Promise<SearchResult>((accept, reject) => {
     const jsEntryFilename = `${filename}.js`;
@@ -52,6 +53,7 @@ export const search = async (tarball: IncomingMessage, filename: string) => {
     if (filename === "/") {
       foundEntry = matchingEntries["/"] = { name: "/", type: "directory" };
     }
+    const tried: string[] = [];
 
     tarball
       .pipe(gunzip())
@@ -68,6 +70,7 @@ export const search = async (tarball: IncomingMessage, filename: string) => {
           type: header.type,
         };
 
+        tried.push(`[${entry.type ?? ""}]  ${entry.path}`);
         // Skip non-files and files that don't match the entryName.
         if (entry.type !== "file" || !entry?.path?.startsWith(filename)) {
           stream.resume();
@@ -137,6 +140,7 @@ export const search = async (tarball: IncomingMessage, filename: string) => {
           // try a directory entry with the same name.
           foundEntry: foundEntry || matchingEntries[filename] || null,
           matchingEntries: matchingEntries,
+          tried,
         });
       });
   });

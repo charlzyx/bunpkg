@@ -1,10 +1,9 @@
-import { Elysia } from "elysia";
-import fs from "fs";
-import { router } from "./routes/router";
 import { cors } from "@elysiajs/cors";
-
-import { BunPkgConfig } from "./config";
+import { Elysia } from "elysia";
+import { router } from "./routes/router";
 import path from "path";
+import { jwt } from "@elysiajs/jwt";
+import { BunPkgConfig } from "./config";
 import { err } from "./templates";
 
 // static file server
@@ -18,23 +17,70 @@ Bun.serve({
   },
 });
 
-new Elysia()
+const app = new Elysia();
+
+app
   .use(cors(BunPkgConfig.cors))
+  .use(
+    jwt({
+      name: "jwt",
+      secret: BunPkgConfig.jwtSecret || "NONE",
+    }),
+  )
   .get("favicon.ico", () => {
     return new Response("");
   })
   .get("", ({ set }) => {
     set.redirect = "/";
   })
-  .get("/browser/*", (ctx) => {
-    return "TODO: file browser";
-  })
-  .get("/", () => {
-    const resp = new Response(Bun.file("src/templates/BUNPKG.html"));
-    resp.headers.set("Content-Type", "text/html; charset=utf8");
-    return resp;
-  })
-  .use(router)
+  .guard(
+    {
+      async beforeHandle({ set, jwt, path, cookie: { auth } }) {
+        const hasJwt = BunPkgConfig.jwtSecret;
+        if (!hasJwt) return;
+        const isSign = /\/_sign\/\w+/.test(path);
+        if (isSign) return;
+
+        const profile = await jwt.verify(auth.value);
+        // console.log("🚀 ~ beforeHandle ~ profile:", profile);
+
+        if (!profile) {
+          set.status = 401;
+          return "Unauthorized";
+        }
+      },
+    },
+
+    (app) =>
+      app
+        .get("/_sign/:name", async ({ jwt, set, cookie: { auth }, params }) => {
+          const userlist = BunPkgConfig.jwtUserList;
+          // TODO: sqlite user.db
+          if (!userlist.includes(params.name)) {
+            set.status = 401;
+            return "Unauthorized";
+          } else {
+            auth.set({
+              value: await jwt.sign(params),
+              httpOnly: true,
+              maxAge: 7 * 86400,
+              path: "/",
+            });
+
+            return "welcome";
+          }
+        })
+
+        .get("/browser/*", (ctx) => {
+          return "TODO: file browser";
+        })
+        .get("/", () => {
+          const resp = new Response(Bun.file("src/templates/BUNPKG.html"));
+          resp.headers.set("Content-Type", "text/html; charset=utf8");
+          return resp;
+        })
+        .use(router),
+  )
 
   .onError(({ code, error }) => {
     const resp = new Response(
@@ -53,8 +99,21 @@ new Elysia()
     port: BunPkgConfig.PORT,
   });
 
+const black = /npmAuthToken|jwtSecret/;
+
 console.log(
   `BUNPKG is Running at http://${BunPkgConfig.HOST_NAME}:${BunPkgConfig.PORT}`,
   "with BunConfig :\n",
-  JSON.stringify(BunPkgConfig, null, 2),
+  JSON.stringify(
+    Object.keys(BunPkgConfig).reduce(
+      (ok: any, key) => {
+        if (black.test(key)) return ok;
+        ok[key] = BunPkgConfig[key as keyof typeof BunPkgConfig];
+        return ok;
+      },
+      {} as typeof BunPkgConfig,
+    ),
+    null,
+    2,
+  ),
 );

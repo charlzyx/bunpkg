@@ -180,7 +180,7 @@ export const searchPackageEntry = async (
 
   const result = await search(tarball!, filename);
 
-  const { foundEntry: entry, matchingEntries: entries } = result;
+  const { foundEntry: entry, matchingEntries: entries, tried } = result;
 
   if (meta) {
     return { entry, entries };
@@ -188,7 +188,9 @@ export const searchPackageEntry = async (
 
   if (!entry) {
     throw new Error(
-      `Cannot find entry ${filename} in ${packageName}@${packageVersion}`,
+      `Cannot find entry ${filename} in ${packageName}@${packageVersion}. tried  ${tried.join(
+        "\n",
+      )}`,
     );
   }
   if (entry.type === "file" && entry.path !== filename) {
@@ -208,7 +210,7 @@ export const searchPackageEntry = async (
       filename = indexEntry.path!;
     } else {
       throw new Error(
-        `Cannot find an index in ${filename} in ${packageName}@${packageVersion}`,
+        `Cannot find an index in ${filename} in ${packageName}@${packageVersion}, tried ${indexEntry}.`,
       );
     }
   }
