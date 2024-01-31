@@ -3,6 +3,7 @@ import { searchPackageEntry } from "../utils/npm";
 import { Context } from "elysia";
 import { SqliteCache } from "../utils/sqlite-cache";
 import { esm } from "../experimental/esm";
+import { BunPkgConfig } from "../config";
 
 export const find = async (
   { path, query, set, request }: Context,
@@ -32,10 +33,11 @@ export const find = async (
     const isModule = "module" in query;
     const cache = entry.content;
     if (isModule) {
-      const origin = entry.content.toString();
+      const code = entry.content.toString();
       const bunpkgESM = esm(
-        `${packageName}@${packageVersion}/${filename}`,
-        origin,
+        BunPkgConfig.origin,
+        `${packageName}@${packageVersion}${realname}`,
+        code,
       );
 
       const resp = new Response(bunpkgESM);
@@ -44,7 +46,7 @@ export const find = async (
     } else {
       const resp = new Response(entry.content);
       if (cache) {
-        SqliteCache.file.write(cacheKey, cache, entry);
+        await SqliteCache.file.write(cacheKey, cache, entry);
       }
       setMetaHeaders(resp, entry);
 

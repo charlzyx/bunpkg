@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import fs from "fs";
 import { router } from "./routes/router";
 import { cors } from "@elysiajs/cors";
 
@@ -12,11 +13,7 @@ Bun.serve({
   hostname: "127.0.0.1",
   async fetch(req) {
     const pathname = new URL(req.url).pathname;
-    const fileAt = path.join(
-      BunPkgConfig.cacheDir,
-      "tgz",
-      pathname.replace(/^\/tgz/, ""),
-    );
+    const fileAt = path.join(BunPkgConfig.cacheDir, pathname);
     return new Response(Bun.file(fileAt));
   },
 });
@@ -38,12 +35,17 @@ new Elysia()
     return resp;
   })
   .use(router)
+
   .onError(({ code, error }) => {
     const resp = new Response(
       err("reason", error?.message || error.toString()),
     );
     resp.headers.set("Content-Type", "text/html; charset=utf8");
-    console.log(`ERROR:${new Date().toLocaleDateString()}\n`, error.stack);
+    console.log(
+      `ERROR: ${new Date().toLocaleDateString()}\n`,
+      error.stack,
+      error.message,
+    );
     return resp;
   })
   .listen({

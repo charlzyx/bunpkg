@@ -4,6 +4,7 @@ import http from "http";
 import { LRUCache } from "lru-cache";
 import { BunPkgConfig } from "../config";
 import { SIZE, TTL } from "./helper";
+import { URL } from "whatwg-url";
 
 const agent = new https.Agent({
   keepAlive: true,
@@ -28,28 +29,35 @@ export const tgz = (name: string) => {
           port: 45456,
           path: `/tgz/${name}`,
         },
-        resolve,
+        (res) => {
+          console.log("🚀 ~ tgz ~ res:", name);
+          return resolve(res);
+        },
       )
-      .on("error", reject);
+      .on("error", (error) => {
+        console.log("🚀 ~ ).on ~tgz error:", error);
+        reject(error);
+      });
   });
 };
-export const get = (options: RequestOptions) => {
-  const conKey = options.host! + options.path;
+export const get = (url: string) => {
+  const { hostname, pathname, protocol, port } = new URL(url);
+  const conKey = hostname! + pathname;
   const maybe = conMap[conKey];
   if (maybe) {
     return maybe;
   } else {
     const p = new Promise<IncomingMessage>((resolve, reject) => {
-      https
+      const exec = /https/.test(protocol) ? https : http;
+      exec
         .get(
           {
             agent,
-            ...options,
+            path: pathname,
+            hostname,
+            port: port,
             headers: {
-              ...options?.headers,
-              Authorization:
-                options?.headers?.authorization ||
-                `Bearer ${BunPkgConfig.npmAuthToken}`,
+              Authorization: `Bearer ${BunPkgConfig.npmAuthToken}`,
             },
           },
           resolve,

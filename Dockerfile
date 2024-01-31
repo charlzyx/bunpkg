@@ -1,22 +1,22 @@
-FROM oven/bun
+FROM oven/bun:alpine
+# FROM oven/bun
 WORKDIR /app
+# RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories
+# RUN apk add curl
 
-COPY package.json .
-COPY bun.lockb .
+COPY package.json bun.lockb bunfig.toml tsconfig.json bunpkg.sh ./
+COPY src src
 
 RUN bun install --production
 
-COPY src src
-COPY tsconfig.json .
-COPY bunpkg.sh ./
 # case by DOCKER ENV
 RUN rm -rf .env
-# COPY public public
 
 ENV NODE_ENV production
 ENV NPM_REGISTRY_URL=https://registry.npmmirror.com/
 ENV NPM_AUTH_TOKEN=
 ENV CORS_ORIGIN=*
+ENV CACHE_DIR=/cache
 
 VOLUME [ "/cache" ]
 

@@ -1,28 +1,40 @@
+import { URL } from "whatwg-url";
+
 const transpiler = new Bun.Transpiler({
   loader: "js",
 });
-// const resolveDots = (withdot: string, relative: string) => {
-//   if (!/\./.test(withdot)) return `/${withdot}`;
-//   const plist = relative.split("/");
-//   plist.pop();
-//   // '../../xx'.match(/(\.\.\/)/g) => ['../', '../']
-//   // './../xx'.match(/(\.\.\/)/g) => ['../']
-//   const upto = withdot.match(/(\.\.\/)/g)?.length || 0;
-//   for (let index = 0; index < upto; index++) {
-//     plist.pop();
-//   }
+const resolveDots = (origin: string, withdot: string, relative: string) => {
+  // keep slash free
+  // http://bunpkg.esm ->  http://git.esm
+  // http://bunpkg.esm/ ->  http://git.esm
+  const realOrigin = origin.replace(/\/^/, "");
+  if (!/\./.test(withdot)) return `${realOrigin}/${withdot}?module`;
+  const plist = relative.split("/");
+  plist.pop();
+  // '../../xx'.match(/(\.\.\/)/g) => ['../', '../']
+  // './../xx'.match(/(\.\.\/)/g) => ['../']
+  const upto = withdot.match(/(\.\.\/)/g)?.length || 0;
+  for (let index = 0; index < upto; index++) {
+    plist.pop();
+  }
 
-//   const clean = withdot.replace(/\.{1,2}\//g, "");
-//   plist.push(clean);
+  const clean = withdot.replace(/\.{1,2}\//g, "");
+  plist.push(clean);
 
-//   return plist.join("/");
-// };
+  return `${realOrigin}/${plist.filter(Boolean).join("/")}?module`;
+};
 
 const reLink = (x: string) => {
   if (!/\./.test(x)) return `/${x}`;
   return x;
 };
-export const esm = (pkgpath: string, code: string) => {
+export const esm = (
+  /** https://bunpkg.esm:2345 */
+  origin: string,
+  /** jquery@1.2.3/esm/index.js */
+  pkgpath: string,
+  code: string,
+) => {
   let copy = code;
   // https://unpkg.com/@pro.formily/antd@1.1.1/dist/esm/index.js
 
@@ -34,7 +46,7 @@ export const esm = (pkgpath: string, code: string) => {
           "g",
         ),
         replacer: (_: string, m: string) => {
-          return `${m} '${reLink(item.path)}?module'`;
+          return `${m} '${resolveDots(origin, item.path, relative)}'`;
         },
       };
     });

@@ -5,6 +5,8 @@ import { IFileMeta } from "./content";
 import { unlink } from "node:fs";
 import { SqliteLRUCache } from "./sqlite-lru-cache";
 
+const writeTasks: Record<string, Promise<any>> = {};
+
 export const cacheFactory = ({
   name,
   maxGib: bytesizeLimit = 1,
@@ -52,7 +54,9 @@ export const cacheFactory = ({
     ) {
       const filePath = path.join(BunPkgConfig.cacheDir, name, pathname);
       file;
-      Bun.write(filePath, file).then((size) => {
+
+      if (filePath in writeTasks) return writeTasks[filePath];
+      writeTasks[filePath] = Bun.write(filePath, file).then((size) => {
         sqlite.set({
           key: pathname,
           bytesize: size,
@@ -61,7 +65,9 @@ export const cacheFactory = ({
             file_path: filePath,
           },
         });
+        delete writeTasks[filePath];
       });
+      return writeTasks[filePath];
     },
   };
 

@@ -9,6 +9,13 @@ export const BunPkgConfig = {
   get HOST_NAME() {
     return process.env.HOST_NAME ?? "0.0.0.0";
   },
+  get origin() {
+    return (
+      process.env.ORIGIN ||
+      `${process.env.HOST_NAME}:${process.env.PORT}` ||
+      "0.0.0.0"
+    );
+  },
   cors: {
     origin: /^\//.test(Bun.env.CORS_ORIGIN ?? "")
       ? new RegExp(Bun.env.CORS_ORIGIN!)
@@ -28,7 +35,10 @@ export const BunPkgConfig = {
     return Bun.env.NPM_AUTH_TOKEN;
   },
   get npmRegistryURL() {
-    return Bun.env.NPM_REGISTRY_URL || "https://registry.npmjs.org";
+    return (Bun.env.NPM_REGISTRY_URL || "https://registry.npmjs.org").replace(
+      /\/$/,
+      "",
+    );
   },
   set npmRegistryURL(neo: string) {
     Bun.env.NPM_REGISTRY_URL = neo;

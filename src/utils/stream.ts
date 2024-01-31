@@ -56,6 +56,7 @@ export const search = async (tarball: IncomingMessage, filename: string) => {
     tarball
       .pipe(gunzip())
       .pipe(tar.extract())
+
       .on("error", reject)
       .on("entry", async (header, stream, next) => {
         const entry: SearchResult["foundEntry"] = {

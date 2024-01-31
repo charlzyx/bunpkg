@@ -35,19 +35,11 @@ const queryPackageInfo = async (packageName: string) => {
   const npmRegistryURL = BunPkgConfig.npmRegistryURL;
 
   const name = encodePackageName(packageName);
-  const infoURL = `${npmRegistryURL}/${name}`.replace(/\/\//, "/");
+  const infoURL = `${npmRegistryURL}/${name}`;
 
   console.debug("Fetching package info for %s from %s", packageName, infoURL);
 
-  const { hostname, pathname } = new URL(infoURL);
-
-  const res = await get({
-    hostname,
-    path: pathname,
-    headers: {
-      Accept: "application/json",
-    },
-  });
+  const res = await get(infoURL);
 
   if (res.statusCode === 200) {
     return promiseifyStream(res).then((value) => {
@@ -153,10 +145,7 @@ export const queryPackageTarball = async (
   const npmRegistryURL = BunPkgConfig.npmRegistryURL;
   const tarballURL = pkgConfig?.dist
     ? pkgConfig?.dist?.tarball
-    : `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`.replace(
-        /\/\//,
-        "/",
-      );
+    : `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`;
 
   const tgzName = `${tarballName}-${version}.tgz`;
 
@@ -167,7 +156,7 @@ export const queryPackageTarball = async (
     console.debug("Fetching package for %s from %s", packageName, tarballURL);
     try {
       const buffer = await fetch(tarballURL);
-      SqliteCache.tgz.write(tgzName, buffer as any, {});
+      await SqliteCache.tgz.write(tgzName, buffer as any, {});
       return tgz(tgzName);
     } catch (error) {
       console.debug(
