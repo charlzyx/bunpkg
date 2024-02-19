@@ -82,13 +82,13 @@ app
         .use(router),
   )
 
-  .onError(({ code, error }) => {
+  .onError(({ code, error, path }) => {
     const resp = new Response(
       err("reason", error?.message || error.toString()),
     );
     resp.headers.set("Content-Type", "text/html; charset=utf8");
     console.log(
-      `ERROR: ${new Date().toLocaleDateString()}\n`,
+      `[Error]: ${new Date().toLocaleString()} ${path}\n`,
       error.stack,
       error.message,
     );

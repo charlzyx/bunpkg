@@ -66,6 +66,11 @@ export const cacheFactory = ({
           },
         });
         delete writeTasks[filePath];
+
+        if (meta?.size && meta.size !== size) {
+          unlink(filePath, () => {});
+          throw new Error(`Size Error will write file ${filePath}`);
+        }
       });
       return writeTasks[filePath];
     },

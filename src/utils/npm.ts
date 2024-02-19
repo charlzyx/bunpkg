@@ -30,33 +30,32 @@ const cacheYou = (cacheKey: string) => {
 const queryPackageInfo = async (packageName: string) => {
   const cacheKey = `pkg-info-${packageName}`;
   const cached = cacheYou(cacheKey);
+  // console.log(`🚀 ~ queryPackageInfo ~ cacheYou: ${cached}`, cacheKey);
   if (cached) return cached;
 
   const npmRegistryURL = BunPkgConfig.npmRegistryURL;
 
-  const name = encodePackageName(packageName);
-  const infoURL = `${npmRegistryURL}/${name}`;
+  const queryInfo = async (npmRegistryURL: string) => {
+    const name = encodePackageName(packageName);
+    const infoURL = `${npmRegistryURL}/${name}`;
 
-  console.debug("Fetching package info for %s from %s", packageName, infoURL);
+    console.debug("Fetching package info for %s from %s", packageName, infoURL);
 
-  const res = await get(infoURL);
+    const resp = await get(infoURL);
+    // console.log(`🚀 ~ queryInfo ~ resp:`, resp.status);
 
-  if (res.statusCode === 200) {
-    return promiseifyStream(res).then((value) => {
-      httpCache.set(cacheKey, value, { ttl: TTL.MINUTES(1) });
-      return JSON.parse(value);
-    });
-  }
+    if (resp) {
+      // console.log("🚀 ~ queryPackageInfo ~ setCacheKey", cacheKey, resp);
+      httpCache.set(cacheKey, JSON.stringify(resp), { ttl: TTL.MINUTES(1) });
+      return resp;
+    } else {
+      const reason = `Error fetching package info for ${packageName} `;
+      console.error(reason);
+      return null;
+    }
+  };
 
-  if (res.statusCode === 400) {
-    httpCache.set(cacheKey, NOT_FOUND, { ttl: TTL.MINUTES(5) });
-  }
-
-  const reason = `Error fetching info for ${packageName} (status: ${res.statusCode}`;
-
-  console.error(reason);
-
-  return null;
+  return await queryInfo(npmRegistryURL);
 };
 
 /**
@@ -143,11 +142,12 @@ export const queryPackageTarball = async (
     : packageName;
   const pkgConfig = await queryPackageConfigOfVersion(packageName, version);
   const npmRegistryURL = BunPkgConfig.npmRegistryURL;
+
+  const tgzName = `${tarballName}-${version}.tgz`;
+
   const tarballURL = pkgConfig?.dist
     ? pkgConfig?.dist?.tarball
     : `${npmRegistryURL}/${packageName}/-/${tarballName}-${version}.tgz`;
-
-  const tgzName = `${tarballName}-${version}.tgz`;
 
   const cacheYou = await SqliteCache.tgz.read(tgzName);
   if (cacheYou) {
@@ -155,9 +155,15 @@ export const queryPackageTarball = async (
   } else {
     console.debug("Fetching package for %s from %s", packageName, tarballURL);
     try {
-      const buffer = await fetch(tarballURL);
-      await SqliteCache.tgz.write(tgzName, buffer as any, {});
-      return tgz(tgzName);
+      const resp = await get(tarballURL, false);
+      if (resp.status === 200) {
+        await SqliteCache.tgz.write(tgzName, resp as any, pkgConfig.dist ?? {});
+        return tgz(tgzName);
+      } else {
+        const reason = `Error download tarball for ${packageName} (${resp.status}: ${resp.statusText})`;
+        console.error(reason);
+        throw new Error(reason);
+      }
     } catch (error) {
       console.debug(
         "Fetching error %s, for %s from %s",
@@ -188,9 +194,9 @@ export const searchPackageEntry = async (
 
   if (!entry) {
     throw new Error(
-      `Cannot find entry ${filename} in ${packageName}@${packageVersion}. tried  ${tried.join(
-        "\n",
-      )}`,
+      `Cannot find entry ${filename} in ${packageName}@${packageVersion}. ${
+        Array.isArray(tried) ? tried.join("\n") : ""
+      }`,
     );
   }
   if (entry.type === "file" && entry.path !== filename) {

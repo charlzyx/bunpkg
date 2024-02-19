@@ -2,9 +2,8 @@ import { IncomingMessage } from "http";
 import https, { RequestOptions } from "https";
 import http from "http";
 import { LRUCache } from "lru-cache";
-import { BunPkgConfig } from "../config";
 import { SIZE, TTL } from "./helper";
-import { URL } from "whatwg-url";
+import { BunPkgConfig } from "../config";
 
 const agent = new https.Agent({
   keepAlive: true,
@@ -17,8 +16,7 @@ export const httpCache = new LRUCache<string, string>({
   maxSize: SIZE.Gib(1),
 });
 
-// is stream can shared ?
-const conMap = {} as Record<string, Promise<IncomingMessage> | void>;
+const conMap = {} as Record<string, Promise<Response> | void>;
 
 export const tgz = (name: string) => {
   return new Promise<IncomingMessage>((resolve, reject) => {
@@ -30,7 +28,6 @@ export const tgz = (name: string) => {
           path: `/tgz/${name}`,
         },
         (res) => {
-          console.log("🚀 ~ tgz ~ res:", name);
           return resolve(res);
         },
       )
@@ -40,33 +37,28 @@ export const tgz = (name: string) => {
       });
   });
 };
-export const get = (url: string) => {
-  const { hostname, pathname, protocol, port } = new URL(url);
-  const conKey = hostname! + pathname;
-  const maybe = conMap[conKey];
+
+export const get = (url: string, json = true) => {
+  const maybe = conMap[url];
   if (maybe) {
+    // console.log("🚀 ~ 且慢 ~ maybe:", url);
+
     return maybe;
   } else {
-    const p = new Promise<IncomingMessage>((resolve, reject) => {
-      const exec = /https/.test(protocol) ? https : http;
-      exec
-        .get(
-          {
-            agent,
-            path: pathname,
-            hostname,
-            port: port,
-            headers: {
-              Authorization: `Bearer ${BunPkgConfig.npmAuthToken}`,
-            },
-          },
-          resolve,
-        )
-        .on("error", reject);
-    }).finally(() => {
-      conMap[conKey] = null!;
-    });
-    conMap[conKey] = p;
+    const headers: Record<string, string> = {
+      "User-Agent": "bunpkg",
+    };
+    if (BunPkgConfig.npmAuthToken) {
+      headers.Authorization = `Bearer ${BunPkgConfig.npmAuthToken}`;
+    }
+    const p = fetch(url, {
+      headers,
+    })
+      .then((resp) => (json ? resp.json() : resp))
+      .finally(() => {
+        conMap[url] = null!;
+      });
+    conMap[url] = p;
     return p;
   }
 };
