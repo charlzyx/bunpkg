@@ -2,6 +2,14 @@ import path from "path";
 import os from "os";
 import type { cors } from "@elysiajs/cors";
 
+const getCROSOrigin = () => {
+  const maybe = /^\//.test(Bun.env.CORS_ORIGIN ?? "")
+    ? new RegExp(Bun.env.CORS_ORIGIN!)
+    : Bun.env.CORS_ORIGIN ?? "*";
+  // * will be ignore, use true to fix it.
+  return maybe === "*" ? true : maybe;
+};
+
 export const BunPkgConfig = {
   get PORT() {
     return process.env.PORT ?? "4567";
@@ -13,9 +21,7 @@ export const BunPkgConfig = {
     return process.env.ORIGIN || `http://localhost${process.env.PORT}`;
   },
   cors: {
-    origin: /^\//.test(Bun.env.CORS_ORIGIN ?? "")
-      ? new RegExp(Bun.env.CORS_ORIGIN!)
-      : Bun.env.CORS_ORIGIN ?? "*",
+    origin: getCROSOrigin(),
   } as Parameters<typeof cors>[0],
   get cacheDir() {
     return Bun.env.CACHE_DIR || path.resolve(os.tmpdir(), "bunpkg_cache");

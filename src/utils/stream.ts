@@ -16,21 +16,6 @@ export const promiseifyStream = (stream: Transform | IncomingMessage) => {
   });
 };
 
-export const setMetaHeaders = (resp: Response, meta: IFileMeta) => {
-  const tags = ["file"];
-
-  const ext = nodepath.extname(meta.path!).substr(1);
-  if (ext) {
-    tags.push(`${ext}-file`);
-  }
-  resp.headers.set("Cross-Origin-Resource-Policy", "cross-origin");
-  resp.headers.set("Content-Type", getContentType(meta.contentType!));
-  resp.headers.set("Content-Length", meta.size?.toString()!);
-  resp.headers.set("Cache-Control", "public, max-age=31536000");
-  resp.headers.set("Last-Modified", meta.lastModified!);
-  resp.headers.set("ETag", tags.join(", "));
-};
-
 /**
  * Search the given tarball for entries that match the given name.
  * Follows node's resolution algorithm.

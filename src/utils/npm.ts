@@ -1,5 +1,4 @@
 import semver from "semver";
-import { URL } from "whatwg-url";
 import { BunPkgConfig } from "../config";
 import {
   TTL,
@@ -13,7 +12,6 @@ import {
   findEntryInEntries,
   findMatchEntries,
   findMatchEntry,
-  promiseifyStream,
   search,
 } from "./stream";
 
