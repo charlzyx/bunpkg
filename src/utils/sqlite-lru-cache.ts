@@ -98,10 +98,6 @@ export class SqliteLRUCache<Meta> {
       WHERE key = $key AND (dead = 0)`);
     // 设置新的值
     // 查询没死的值, 更新 access 时间
-    this.SQL.GET = db.query(`
-      SELECT * FROM cache WHERE key = $key
-     `);
-    // 设置新的值
     this.SQL.SET = db.query(`
       INSERT OR REPLACE INTO cache (key, meta, bytesize, access, dead) 
       VALUES ($key, $meta, $bytesize, $access, 0) 

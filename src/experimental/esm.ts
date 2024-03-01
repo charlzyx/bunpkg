@@ -1,5 +1,3 @@
-import { URL } from "whatwg-url";
-
 const transpiler = new Bun.Transpiler({
   loader: "js",
 });

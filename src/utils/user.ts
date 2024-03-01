@@ -1,5 +1,4 @@
 import { Database, Statement } from "bun:sqlite";
-import { serialize, deserialize } from "v8";
 
 export class UserDB {
   db: Database;

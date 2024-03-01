@@ -5,7 +5,10 @@ import path from "path";
 import { jwt } from "@elysiajs/jwt";
 import { BunPkgConfig } from "./config";
 import { err } from "./templates";
+import { Consola } from "consola";
+import { getPort } from "get-port-please";
 
+Object.assign(console, Consola);
 // static file server
 Bun.serve({
   port: 45456,
