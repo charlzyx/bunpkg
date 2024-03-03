@@ -58,16 +58,13 @@ export class SqliteLRUCache<Meta> {
 
   constructor({
     database,
-    // 5w
     maxLen = 50 * 1000,
-    // 1 Gib
-    maxByteSize: maxSize = 1 * Math.pow(2, 30),
+    maxByteSize = 1 * Math.pow(2, 30),
     onRemove = () => {},
   }: SqlCacheOptions<Meta>) {
-    console.log("🚀 ~ SqliteLRUCache<Meta> ~ database:", database);
     this.db = new Database(database ?? ":memory:", { create: true });
     this.maxLen = maxLen;
-    this.maxByteSize = maxSize;
+    this.maxByteSize = maxByteSize;
     this.onRemove = onRemove;
     this._initdb(this.db);
   }
@@ -135,8 +132,11 @@ export class SqliteLRUCache<Meta> {
     console.table(this.db.query("SELECT * FROM cache").all());
   }
 
-  get(key: string, Debug_NOW?: number) {
-    this.SQL.GET_EXEC.run({ $key: key, $now: Debug_NOW ?? Date.now() });
+  get(key: string, now?: number) {
+    this.SQL.GET_EXEC.run({
+      $key: key,
+      $now: now ?? Date.now(),
+    });
     const answer = this.SQL.GET.get({ $key: key });
     if (answer) {
       answer.meta = deserialize(answer.meta as any);

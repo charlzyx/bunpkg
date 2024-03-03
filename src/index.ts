@@ -5,20 +5,19 @@ import path from "path";
 import { jwt } from "@elysiajs/jwt";
 import { BunPkgConfig } from "./config";
 import { err } from "./templates";
-import { Consola } from "consola";
 import { getPort } from "get-port-please";
 
-Object.assign(console, Consola);
-// static file server
-Bun.serve({
-  port: 45456,
-  hostname: "127.0.0.1",
-  async fetch(req) {
-    const pathname = new URL(req.url).pathname;
-    const fileAt = path.join(BunPkgConfig.cacheDir, pathname);
-    return new Response(Bun.file(fileAt));
-  },
-});
+// Object.assign(console, Consola);
+// // static file server
+// Bun.serve({
+//   port: 45456,
+//   hostname: "127.0.0.1",
+//   async fetch(req) {
+//     const pathname = new URL(req.url).pathname;
+//     const fileAt = path.join(BunPkgConfig.cacheDir, pathname);
+//     return new Response(Bun.file(fileAt));
+//   },
+// });
 
 const app = new Elysia();
 
@@ -79,7 +78,7 @@ app
         })
         .get("/", () => {
           const resp = new Response(Bun.file("src/templates/BUNPKG.html"));
-          resp.headers.set("Content-Type", "text/html; charset=utf8");
+          resp.headers.set("Content-Type", "text/html; charset=utf-8");
           return resp;
         })
         .use(router),
@@ -89,7 +88,7 @@ app
     const resp = new Response(
       err("reason", error?.message || error.toString()),
     );
-    resp.headers.set("Content-Type", "text/html; charset=utf8");
+    resp.headers.set("Content-Type", "text/html; charset=utf-8");
     console.log(
       `[Error]: ${new Date().toLocaleString()} ${path}\n`,
       error.stack,
