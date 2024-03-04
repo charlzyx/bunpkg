@@ -1,5 +1,5 @@
 import { BunPkgConfig } from "../config";
-import { esm } from "../experimental/esm";
+import { toESM } from "../experimental/esm";
 
 import { describe, expect, it } from "bun:test";
 
@@ -32,7 +32,7 @@ export * from 'https://bunpkg.esm/ha?module';
 export { what } from 'https://bunpkg.esm/else?module';
 export { why } from 'https://bunpkg.esm/pkg@v1.2.3/some/esm/feature/not?module';
 `;
-    const out = esm(ORIGIN, "pkg@v1.2.3/some/esm/feature/index.js", input);
+    const out = toESM(ORIGIN, "pkg@v1.2.3/some/esm/feature/index.js", input);
     console.log("🚀 ~ it ~ out:", out);
     expect(out).toEqual(output);
   });

@@ -9,21 +9,33 @@ export type SqlCacheOptions<Meta> = {
 };
 
 type CacheItem<Meta> = {
+  /** 主键 key */
   key: string;
+  /** 序列化 JSON Object */
   meta?: Meta;
+  /** 存储空间 */
   bytesize: number;
-  // Date.unix()
+  /** 最近访问时间  Date.unix() */
   access?: number;
+  /** 过期时间 Date.unx() 跟 access 互斥 */
+  expire?: number;
+  /** 是否待清理 */
   dead?: 0 | 1;
 };
 
 type QueryCacheItem = {
-  $now: number;
+  /** 主键 key */
   $key: string;
+  /** 当前时间 */
+  $now: number;
+  /** 序列化后的 JSON Object */
   $meta: ReturnType<typeof serialize>;
+  /** 存储空间 */
   $bytesize: number;
-  // Date.unix()
+  /** 最近访问时间 Date.unix() **/
   $access: number;
+  /** 过期时间 Date.unix() **/
+  $expire: number;
 };
 
 // insprid by https://github.com/notskamr/bun-sqlite-cache/blob/main/src/index.ts
@@ -42,6 +54,7 @@ export class SqliteLRUCache<Meta> {
     POP: Statement<string, []>;
     SUM: Statement<{ sum: number }, []>;
     KILLED: Statement<CacheItem<Meta>, []>;
+    EXPIRED: Statement<CacheItem<Meta>, { $now: number }[]>;
     SHUTDOWN: Statement;
     DANGER_DROP_FORM: Statement<void, []>;
   } = {
@@ -52,6 +65,7 @@ export class SqliteLRUCache<Meta> {
     POP: null!,
     SUM: null!,
     KILLED: null!,
+    EXPIRED: null!,
     SHUTDOWN: null!,
     DANGER_DROP_FORM: null!,
   };
@@ -62,7 +76,8 @@ export class SqliteLRUCache<Meta> {
     maxByteSize = 1 * Math.pow(2, 30),
     onRemove = () => {},
   }: SqlCacheOptions<Meta>) {
-    this.db = new Database(database ?? ":memory:", { create: true });
+    // this.db = new Database(database ?? ":memory:", { create: true });
+    this.db = new Database(":memory:");
     this.maxLen = maxLen;
     this.maxByteSize = maxByteSize;
     this.onRemove = onRemove;
@@ -79,6 +94,7 @@ export class SqliteLRUCache<Meta> {
           meta BLOB,
           bytesize INT,
           access INT,
+          expire INT,
           dead INT
         )`,
       ).run();
@@ -94,6 +110,10 @@ export class SqliteLRUCache<Meta> {
       SET access = $now, dead = 0
       WHERE key = $key AND (dead = 0)`);
     // 设置新的值
+    // 根据 key 查询
+    this.SQL.GET = db.query(`
+      SELECT * FROM cache WHERE key = $key
+    `);
     // 查询没死的值, 更新 access 时间
     this.SQL.SET = db.query(`
       INSERT OR REPLACE INTO cache (key, meta, bytesize, access, dead) 
@@ -119,6 +139,10 @@ export class SqliteLRUCache<Meta> {
     this.SQL.KILLED = db.query(`
       SELECT * FROM cache WHERE dead = 1;
     `);
+    // 获取要过期的
+    this.SQL.EXPIRED = db.query(`
+      DELETE FROM cache WHERE expire < $now;
+    `);
     // 执行死刑
     this.SQL.SHUTDOWN = db.query(`
       DELETE FROM cache WHERE dead = 1;
@@ -132,13 +156,18 @@ export class SqliteLRUCache<Meta> {
     console.table(this.db.query("SELECT * FROM cache").all());
   }
 
-  get(key: string, now?: number) {
+  get(key: string, nowis?: number) {
+    const now = nowis ?? Date.now();
     this.SQL.GET_EXEC.run({
       $key: key,
-      $now: now ?? Date.now(),
+      $now: now,
     });
     const answer = this.SQL.GET.get({ $key: key });
     if (answer) {
+      // 处理过期情况
+      if (now > answer.expire!) {
+        return null;
+      }
       answer.meta = deserialize(answer.meta as any);
     }
     return answer;
@@ -151,6 +180,7 @@ export class SqliteLRUCache<Meta> {
       $meta: serialize(item.meta),
       $bytesize: item.bytesize,
       $access: item.access ?? Date.now(),
+      $expire: item.expire ?? 0,
     });
   }
 
@@ -161,6 +191,11 @@ export class SqliteLRUCache<Meta> {
   private autoClean(appendSize: CacheItem<Meta>["bytesize"]) {
     this.SQL.LENGTH_LMITED.run({
       $maxLen: this.maxLen - 1,
+    });
+
+    /** 先清理过期的 */
+    this.SQL.EXPIRED.run({
+      $now: Date.now(),
     });
 
     while (

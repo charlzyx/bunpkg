@@ -39,6 +39,7 @@
         "useExhaustiveDependencies": "warn"
       },
       "style": {
+        "noUnusedTemplateLiteral": "off",
         "noParameterAssign": "warn",
         "useDefaultParameterLast": "warn",
         "useExponentiationOperator": "off",

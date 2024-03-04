@@ -53,7 +53,6 @@ export const cacheFactory = ({
       meta?: IFileMeta,
     ) {
       const filePath = path.join(BunPkgConfig.cacheDir, name, pathname);
-      file;
 
       if (filePath in writeTasks) return writeTasks[filePath];
       writeTasks[filePath] = Bun.write(filePath, file).then((size) => {

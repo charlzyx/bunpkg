@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "CACHE_DIR=./.cache ORIGIN=http://0.0.0.0:4567 bun run --watch src/index.ts",
+    "dev": "bun run --watch src/index.ts",
     "docs:dev": "vocs dev",
     "docs:build": "vocs build"
   },

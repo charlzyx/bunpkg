@@ -2,7 +2,7 @@ import { setMetaHeaders } from "../utils/content";
 import { searchPackageEntry } from "../utils/npm";
 import { Context } from "elysia";
 import { SqliteCache } from "../utils/sqlite-cache";
-import { esm } from "../experimental/esm";
+import { toESM } from "../experimental/esm";
 import { BunPkgConfig } from "../config";
 
 export const find = async (
@@ -34,7 +34,7 @@ export const find = async (
     const cache = entry.content;
     if (isModule) {
       const code = entry.content.toString();
-      const bunpkgESM = esm(
+      const bunpkgESM = toESM(
         BunPkgConfig.origin,
         `${packageName}@${packageVersion}${realname}`,
         code,

@@ -24,7 +24,8 @@ export const BunPkgConfig = {
     origin: getCROSOrigin(),
   } as Parameters<typeof cors>[0],
   get cacheDir() {
-    return Bun.env.CACHE_DIR || path.resolve(os.tmpdir(), "bunpkg_cache");
+    // return Bun.env.CACHE_DIR || path.resolve(os.tmpdir(), "bunpkg_cache");
+    return path.resolve("./.cache");
   },
   get cacheSize() {
     const maybe = Number(Bun.env.CACHE_GIB);

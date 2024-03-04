@@ -26,7 +26,7 @@ const reLink = (x: string) => {
   if (!/\./.test(x)) return `/${x}`;
   return x;
 };
-export const esm = (
+export const toESM = (
   /** https://bunpkg.esm:2345 */
   origin: string,
   /** jquery@1.2.3/esm/index.js */

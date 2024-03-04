@@ -6,6 +6,9 @@ import { jwt } from "@elysiajs/jwt";
 import { BunPkgConfig } from "./config";
 import { err } from "./templates";
 import { getPort } from "get-port-please";
+import { npm } from "./features/npm";
+import { meta } from "./features/meta";
+import { esm } from "./features/esm";
 
 // Object.assign(console, Consola);
 // // static file server
@@ -44,7 +47,6 @@ app
         if (isSign) return;
 
         const profile = await jwt.verify(auth.value);
-        // console.log("🚀 ~ beforeHandle ~ profile:", profile);
 
         if (!profile) {
           set.status = 401;
@@ -81,13 +83,18 @@ app
           resp.headers.set("Content-Type", "text/html; charset=utf-8");
           return resp;
         })
-        .use(router),
+        .use(npm)
+        .use(meta)
+        .use(esm),
+    // .use(router),
   )
 
-  .onError(({ code, error, path }) => {
+  .onError(({ code, error, path, set }) => {
     const resp = new Response(
       err("reason", error?.message || error.toString()),
     );
+    set.status = 404;
+
     resp.headers.set("Content-Type", "text/html; charset=utf-8");
     console.log(
       `[Error]: ${new Date().toLocaleString()} ${path}\n`,
