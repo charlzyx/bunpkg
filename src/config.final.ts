@@ -36,7 +36,7 @@ const defaults = {
   server: {
     port: 4567,
     cors: {
-      origin: "*",
+      origin: true,
     },
     // host: "0.0.0.0",
   },
@@ -63,8 +63,14 @@ export const EMPTY_JWT_SECRET = "EMPTY_JWT_SECRET";
 
 const merged = defu(env, CustomConfig, defaults);
 
-merged.jwt.secret = merged.jwt.secret ? merged.jwt.secret : EMPTY_JWT_SECRET;
-merged.npm.registry = merged.npm.registry.replace(/\/$/, "");
-console.log(`🚀 ~ merged:`, merged);
+const safe = (conf: typeof merged): typeof merged => {
+  conf.jwt.secret = conf.jwt.secret ? conf.jwt.secret : EMPTY_JWT_SECRET;
+  conf.npm.registry = conf.npm.registry.replace(/\/$/, "");
+  // fix cors plugin bug
+  if (conf.server.cors.origin && conf.server.cors.origin === "*") {
+    conf.server.cors.origin = true;
+  }
+  return conf;
+};
 
-export const BunPkgConfig = merged;
+export const BunPkgConfig = safe(merged);
