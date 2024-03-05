@@ -7,10 +7,11 @@ const getSql = (expire?: boolean) => {
     current: [] as string[],
   };
   const sql = new SqliteLRUCache({
+    database: ":memory:",
     maxLen: 3,
     maxByteSize: 6,
     onRemove(items, reason) {
-      // console.log(`🚀 ~ onRemove ~ items:`, reason, items);
+      // console.log(`🚀 ~ onRemove ~ items:`, items);
       ref.current = ref.current.concat(items.map((x) => x.key));
     },
   });

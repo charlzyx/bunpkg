@@ -1,4 +1,4 @@
-export const err = (code: string, error: string) => {
+export const getErrHtml = (code: string, error: string) => {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -32,7 +32,7 @@ export const err = (code: string, error: string) => {
 
 <body>
   <div class="content">
-    <h1>ERROR</h1>
+    <h1>ERROR ${code}</h1>
     <hr />
     <br />  
     <br />  

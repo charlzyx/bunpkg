@@ -1,18 +1,41 @@
 import { Elysia } from "elysia";
 import { TarFileItem } from "nanotar";
 import { sqliteCache } from "../common/cache";
-import { getMetaList, parsePkgByPathname, resolveVersion } from "../common/pkg";
-import { getPkgInfo, simpleMeta } from "./utils";
+import {
+  parsePkgByPathname,
+  queryMetaList,
+  resolveVersion,
+  queryPkgInfo,
+} from "../common/pkg";
+import { simpleMeta } from "./utils";
 
 export const meta = (app: Elysia) => {
+  /**
+   * /meta/pkg[@version][/filename]
+   * @example
+   * /meta/react
+   * /meta/react@18.0.2/src
+   * /meta/react@18.0.2/index.js
+   *
+   * if not match filename, will be return all fileList
+   *
+   * @returns {
+   *    name: string
+   * }[]
+   *
+   * @params purge @type boolean 删除当前缓存
+   */
   return app.get("/meta/*", async (ctx) => {
-    const { path, set } = ctx;
+    const { query, path, set } = ctx;
+    if (query.purge !== undefined) {
+      sqliteCache.purge(path);
+      return Response.json({ message: `PURGE CACHE ${path} SUCCESS!` });
+    }
     const pathname = path.replace(/^\/meta/, "");
     // ---step.1.1 local:: base parse and valid
     const pkg = parsePkgByPathname(pathname);
     // ---step.1.2 query remote
-    const remote = await getPkgInfo(pkg.pkgName);
-    // console.log(`🚀 ~ step.1.2 ~ pkg:`, remote);
+    const remote = await queryPkgInfo(pkg.pkgName);
     // ---step.1.3 resolve version
     const version = resolveVersion(pkg, remote);
 
@@ -38,7 +61,7 @@ export const meta = (app: Elysia) => {
       return resp;
     } else {
       // no cached
-      const metaList: TarFileItem[] = await getMetaList(pkg);
+      const metaList: TarFileItem[] = await queryMetaList(pkg);
       const prefix = path
         .replace(/\/meta\//, "package")
         .replace(pkg.pkgSpec, "");

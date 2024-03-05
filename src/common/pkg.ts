@@ -1,10 +1,11 @@
 import { resolve, semver, version } from "bun";
 import validateNpmPackageName from "validate-npm-package-name";
-import { BunPkgConfig } from "../config";
+import { BunPkgConfig } from "../config.final";
+import { unlink } from "node:fs";
 import { IFileMeta } from "../features/utils";
 import { memoCache, sqliteCache } from "./cache";
-import { err } from "./err";
-import { fetchPackageTarball } from "./fetch";
+import { markError } from "./err";
+import { fetchPackageInfo, fetchPackageTarball } from "./fetch";
 import { getContentType, getIntegrityBy, tgzReader } from "./file";
 import { TarFileItem } from "nanotar";
 
@@ -31,20 +32,31 @@ export const parsePkgByPathname = (pathname: string) => {
   try {
     pathname = decodeURIComponent(pathname);
   } catch (error) {
-    throw err("PathParser", "Decode", `when decode (${pathname}) ${error}`);
+    throw markError(
+      "ParseError",
+      "PathParser",
+      "Decode",
+      `when decode (${pathname}) ${error}`,
+    );
   }
 
   const match = helper.packagePathnameFormat.exec(pathname);
-  console.log(`🚀 ~ parsePkgByPathname ~ match:`, match, pathname);
 
   if (match == null) {
-    throw err("PathParser", "Validate", "invalid package name", pathname);
+    throw markError(
+      "PathValidationError",
+      "PathParser",
+      "Validate",
+      "invalid package name",
+      pathname,
+    );
   }
 
   const [_, name, version = "latest", filename = ""] = match;
 
   if (helper.isHash(name)) {
-    throw err(
+    throw markError(
+      "PathValidationError",
       "PathParser",
       "Validate",
       `package name ${name} can not be a hash, pathname ${pathname}`,
@@ -54,7 +66,12 @@ export const parsePkgByPathname = (pathname: string) => {
   const maybe = validateNpmPackageName(name).errors;
 
   if (maybe) {
-    throw err("PathParser", "Validate", `${maybe.join(", ")}`);
+    throw markError(
+      "PathValidationError",
+      "PathParser",
+      "Validate",
+      `${maybe.join(", ")}`,
+    );
   }
 
   const info = {
@@ -88,7 +105,12 @@ export const resolveVersion = (
     memoCache.get(cacheKey);
   }
   if (!versionsAndTags) {
-    throw err("Resolve", "Package Version", "No Package Info on Upstream");
+    throw markError(
+      "NotFoundError",
+      "Resolve",
+      "Package Version",
+      "No Package Info on Upstream",
+    );
   }
   const versions = Object.keys(versionsAndTags.versions);
   const tags = versionsAndTags?.["dist-tags"] || versionsAndTags?.tags;
@@ -105,6 +127,7 @@ export const resolveVersion = (
   return range;
 };
 
+// https://www.jsdelivr.com/documentation#id-configuring-a-default-file-in-packagejson
 const entries = ["bunpkg", "unpkg", "jsdelivr", "browser", "main"];
 
 const findEntry = (pkg: any) => {
@@ -180,7 +203,7 @@ export const getTarballOfVersion = (
 ) => {
   // must be cached
   const pkgConfig = getConfigOfVersion(pkg);
-  const npmRegistryURL = BunPkgConfig.npmRegistryURL;
+  const npmRegistryURL = BunPkgConfig.npm.registry;
   const tarballName = isScopedPkgName(pkg.pkgName)
     ? pkg.pkgName.split("/")[1]
     : pkg.pkgName;
@@ -193,7 +216,7 @@ export const getTarballOfVersion = (
   return [tgzName, tgzURL, pkgConfig?.dist];
 };
 
-export const getMetaList = async (
+export const queryMetaList = async (
   pkg: ReturnType<typeof parsePkgByPathname>,
 ): Promise<TarFileItem[]> => {
   const [tgzName, tgzUrl, distInfo] = getTarballOfVersion(pkg);
@@ -201,24 +224,26 @@ export const getMetaList = async (
   if (!has) {
     const upstram = await fetchPackageTarball(tgzUrl);
 
-    await sqliteCache.write(tgzName, {}, 0, upstram);
+    const [saveTo, file] = await sqliteCache.write(tgzName, {}, 0, upstram);
 
-    const buffer = await sqliteCache
-      .read(tgzName)
-      .then((cache) => cache?.file?.arrayBuffer());
+    if (distInfo?.integrity) {
+      // tgz 签名验证
+      const buffer = await file?.arrayBuffer();
+      const algo = distInfo?.integrity?.split("-")?.[0];
+      const integrity = getIntegrityBy(buffer!, algo ? [algo] : algo);
 
-    const algo = distInfo?.integrity?.split("-")?.[0];
-
-    const integrity = getIntegrityBy(buffer!, algo ? [algo] : algo);
-
-    if (distInfo?.integrity && integrity !== distInfo.integrity) {
-      throw err(
-        "File Check",
-        "integrity Check Bad",
-        `excpet ${distInfo.integrity}, received ${integrity}`,
-      );
+      if (integrity !== distInfo.integrity) {
+        // 签名验证失败删除文件
+        unlink(saveTo, () => {});
+        throw markError(
+          "InternalServerError",
+          "File Check",
+          "integrity Check Bad",
+          `excpet ${distInfo.integrity}, received ${integrity}`,
+        );
+      }
     }
-    return getMetaList(pkg);
+    return queryMetaList(pkg);
   }
   const fileList = await tgzReader(has.file);
   return fileList;
@@ -228,11 +253,11 @@ export const resolveTgz = async (
   pkg: ReturnType<typeof parsePkgByPathname>,
   cacheKey?: string,
 ): Promise<[Uint8Array, IFileMeta]> => {
-  const [tgzName, tgzUrl, distInfo] = getTarballOfVersion(pkg);
-  const fileList = await getMetaList(pkg);
+  const [tgzName] = getTarballOfVersion(pkg);
+  const fileList = await queryMetaList(pkg);
   const file = fileList.find((x) => x.name === `package${pkg.filename}`);
   if (!file) {
-    throw err("File Not Found", `in ${tgzName}`);
+    throw markError("NotFoundError", "File Not Found", `in ${tgzName}`);
   } else {
     const meta: IFileMeta = {
       contentType: getContentType(pkg.filename),
@@ -245,4 +270,18 @@ export const resolveTgz = async (
     }
     return [file.data!, meta] as const;
   }
+};
+
+export const queryPkgInfo = async (packageName: string) => {
+  const cacheKey = `pacakge-info${packageName}`;
+  const cached = await sqliteCache.read(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  return fetchPackageInfo(packageName).then((info) => {
+    // expire in 60s
+    sqliteCache.write(cacheKey, info, Date.now() + 1000 * 60);
+    return info;
+  });
 };

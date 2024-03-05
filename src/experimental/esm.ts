@@ -5,8 +5,8 @@ const resolveDots = (origin: string, withdot: string, relative: string) => {
   // keep slash free
   // http://bunpkg.esm ->  http://git.esm
   // http://bunpkg.esm/ ->  http://git.esm
-  const realOrigin = origin.replace(/\/^/, "");
-  if (!/\./.test(withdot)) return `${realOrigin}/${withdot}?module`;
+  const realOrigin = `${origin.replace(/\/^/, "")}/esm`;
+  if (!/\./.test(withdot)) return `${realOrigin}/${withdot}`;
   const plist = relative.split("/");
   plist.pop();
   // '../../xx'.match(/(\.\.\/)/g) => ['../', '../']
@@ -19,13 +19,13 @@ const resolveDots = (origin: string, withdot: string, relative: string) => {
   const clean = withdot.replace(/\.{1,2}\//g, "");
   plist.push(clean);
 
-  return `${realOrigin}/${plist.filter(Boolean).join("/")}?module`;
+  return `${realOrigin}/${plist.filter(Boolean).join("/")}`;
 };
 
-const reLink = (x: string) => {
-  if (!/\./.test(x)) return `/${x}`;
-  return x;
-};
+// const reLink = (x: string) => {
+//   if (!/\./.test(x)) return `/${x}`;
+//   return x;
+// };
 export const toESM = (
   /** https://bunpkg.esm:2345 */
   origin: string,

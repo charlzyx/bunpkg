@@ -1,15 +1,26 @@
 import { BunFile } from "bun";
-import path from "path";
+import path from "node:path";
 import mime from "mime";
 import { parseTar } from "nanotar";
+import { markError } from "./err";
 
 export const tgzReader = async (filename: BunFile | string | undefined) => {
   const file = typeof filename === "string" ? Bun.file(filename) : filename;
   if (!file || !(await file.exists())) {
-    throw new Error(`tgzReader:: File Not Exist. ${filename}`);
+    throw markError(
+      "InternalServerError",
+      `tgzReader`,
+      `File Not Exist`,
+      `${filename}`,
+    );
   }
   if (typeof filename === "string" && !/\.tgz$/.test(filename)) {
-    throw new Error(`tgzReader:: Unsupported File Type. ${filename}`);
+    throw markError(
+      "InternalServerError",
+      `tgzReader`,
+      `Only .tgz file supported`,
+      `${filename}`,
+    );
   }
   const buffer = await file.arrayBuffer();
   const decompressed = Bun.gunzipSync(buffer);
@@ -25,13 +36,22 @@ export const getIntegrityBy = (
   algoithms: (typeof Bun.CryptoHasher)["algorithms"] = ["sha512"],
   delimiter = " ",
 ) => {
-  console.log(`🚀 ~ algoithms:`, algoithms);
   return algoithms
     .map((algoithm) => {
-      const hash = new Bun.CryptoHasher(algoithm)
-        .update(data, "utf-8")
-        .digest("base64");
-      return `${algoithm}-${hash}`;
+      try {
+        const hash = new Bun.CryptoHasher(algoithm)
+          .update(data, "utf-8")
+          .digest("base64");
+        return `${algoithm}-${hash}`;
+      } catch (error) {
+        throw markError(
+          "InternalServerError",
+          "getIntegrityBy",
+          "CryptoHasher Error",
+          `algoithm ${algoithm}`,
+          error?.toString(),
+        );
+      }
     })
     .join(delimiter);
 };

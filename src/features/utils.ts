@@ -1,7 +1,5 @@
 import { TarFileItem } from "nanotar";
-import path from "path";
-import { sqliteCache } from "../common/cache";
-import { fetchPackageInfo } from "../common/fetch";
+import path from "node:path";
 
 export type IFileMeta = {
   name?: string;
@@ -44,20 +42,6 @@ export const appendMetaHeaders = (resp: Response, meta: IFileMeta) => {
   resp.headers.set("Cache-Control", "public, max-age=31536000");
   resp.headers.set("Last-Modified", meta.lastModified!);
   resp.headers.set("ETag", tags.join(","));
-};
-
-export const getPkgInfo = async (packageName: string) => {
-  const cacheKey = `pacakge-info${packageName}`;
-  const cached = await sqliteCache.read(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  return fetchPackageInfo(packageName).then((info) => {
-    // expire in 60s
-    sqliteCache.write(cacheKey, info, Date.now() + 1000 * 60);
-    return info;
-  });
 };
 
 export const simpleMeta = (x: TarFileItem) => {

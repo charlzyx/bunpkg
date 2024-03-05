@@ -84,8 +84,8 @@ PORT=4567
 HOST_NAME=127.0.0.1
 CORS_ORIGIN=*
 CACHE_DIR=/cache
-CACHE_GIB=4
-NPM_AUTH_TOKEN=
+CACHE_MAX_SIZE=4
+NPM_AUTHTOKEN=
 ```
 
 ## docker
@@ -97,7 +97,7 @@ NPM_AUTH_TOKEN=
 # CACHE_GIB=4
 # NPM_AUTH_TOKEN=
 docker run -i -t -p 4567:4567 chaogpt/bunpkg
-docker run --env-file .env -i -t -p 4567:4567 -v /cache:./cache chaogpt/bunpkg
+docker run --env-file .env -i -t -p 4567:4567 -v /cache:./cache -v bunpkg.config.ts:/app/bunpkg.config.ts chaogpt/bunpkg 
 ```
 
 ## Roadmap

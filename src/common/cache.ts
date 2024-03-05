@@ -1,12 +1,13 @@
 import { unlink } from "node:fs";
 import { SqliteLRUCache } from "./sqlite-lru-cache";
-import { BunPkgConfig } from "../config";
-import path from "path";
+import { BunPkgConfig } from "../config.final";
+import path from "node:path";
 import { LRUCache } from "lru-cache";
 import { BunFile } from "bun";
 import { serialize, deserialize } from "v8";
+import { markError } from "./err";
 
-const database = path.join(BunPkgConfig.cacheDir, `cache.sqlite`);
+const database = path.join(BunPkgConfig.cache.dir, `cache.sqlite`);
 
 const sqlite = new SqliteLRUCache<{
   file_path?: string;
@@ -15,9 +16,9 @@ const sqlite = new SqliteLRUCache<{
 }>({
   database,
   /**  4Gib */
-  maxByteSize: 4 * Math.pow(2, 30),
-  /** 10W */
-  maxLen: 10 * Math.pow(10, 4),
+  maxByteSize: BunPkgConfig.cache.maxSize * Math.pow(2, 30),
+  /** 8W */
+  maxLen: 8 * 10000,
   onRemove(items, reason) {
     items.forEach((item) => {
       if (item?.meta?.file_path) {
@@ -29,6 +30,9 @@ const sqlite = new SqliteLRUCache<{
 const tasks: Record<string, Promise<any>> = {};
 
 export const sqliteCache = {
+  purge(key: string, wild?: boolean) {
+    sqlite.purge(key, wild);
+  },
   async read(key: string) {
     const meta = sqlite.get(key)?.meta;
     const maybe = meta?.file_path;
@@ -65,7 +69,7 @@ export const sqliteCache = {
         expire,
       });
     } else {
-      const filepath = path.join(BunPkgConfig.cacheDir, "file", key);
+      const filepath = path.join(BunPkgConfig.cache.dir, "files", key);
       if (filepath in tasks) return tasks[filepath];
       tasks[filepath] = Bun.write(filepath, content).then((size) => {
         sqlite.set({
@@ -80,10 +84,15 @@ export const sqliteCache = {
         // size checking
         if (meta.size && meta.size !== size) {
           unlink(filepath, () => {});
-          throw new Error(
-            `File Write Error, size not match ${filepath}, except ${meta.size}, recived ${size} `,
+          throw markError(
+            "InternalServerError",
+            "Sqlite Cache",
+            "File Write Failed, Case by",
+            "File Size Not Match",
+            `${filepath} except ${meta.size}, recived ${size} `,
           );
         }
+        return [filepath, Bun.file(filepath)] as const;
       });
       return tasks[filepath];
     }
@@ -97,8 +106,8 @@ export const memoLRU = new LRUCache<string, any>({
   sizeCalculation: (value) => {
     return Buffer.byteLength(value as any) || 1;
   },
-  // 1 Gib
-  maxSize: 1 * Math.pow(2, 30),
+  // 500 Mib
+  maxSize: 500 * Math.pow(2, 20),
 });
 
 export const memoCache = {

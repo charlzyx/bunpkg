@@ -1,4 +1,4 @@
-import { BunPkgConfig } from "../config";
+import { BunPkgConfig } from "../config.final";
 import { toESM } from "../experimental/esm";
 
 import { describe, expect, it } from "bun:test";
@@ -21,19 +21,19 @@ export { why } from './not';
 `;
 
     const output = `
-import * as whatever from 'https://bunpkg.esm/pkg@v1.2.3/some/esm/feature/whatever.js?module'
-import a, { b } from 'https://bunpkg.esm/aha?module'
-import c, { d } from 'https://bunpkg.esm/pkg@v1.2.3/some/esm/feature/aha?module'
-import e, { f } from 'https://bunpkg.esm/pkg@v1.2.3/some/esm/aha?module'
-import g, { h } from 'https://bunpkg.esm/pkg@v1.2.3/some/aha?module'
-import i, { j } from 'https://bunpkg.esm/pkg@v1.2.3/aha?module'
-export * from 'https://bunpkg.esm/pkg@v1.2.3/some/esm/feature/aha?module';
-export * from 'https://bunpkg.esm/ha?module';
-export { what } from 'https://bunpkg.esm/else?module';
-export { why } from 'https://bunpkg.esm/pkg@v1.2.3/some/esm/feature/not?module';
+import * as whatever from 'https://bunpkg.esm/esm/pkg@v1.2.3/some/esm/feature/whatever.js'
+import a, { b } from 'https://bunpkg.esm/esm/aha'
+import c, { d } from 'https://bunpkg.esm/esm/pkg@v1.2.3/some/esm/feature/aha'
+import e, { f } from 'https://bunpkg.esm/esm/pkg@v1.2.3/some/esm/aha'
+import g, { h } from 'https://bunpkg.esm/esm/pkg@v1.2.3/some/aha'
+import i, { j } from 'https://bunpkg.esm/esm/pkg@v1.2.3/aha'
+export * from 'https://bunpkg.esm/esm/pkg@v1.2.3/some/esm/feature/aha';
+export * from 'https://bunpkg.esm/esm/ha';
+export { what } from 'https://bunpkg.esm/esm/else';
+export { why } from 'https://bunpkg.esm/esm/pkg@v1.2.3/some/esm/feature/not';
 `;
     const out = toESM(ORIGIN, "pkg@v1.2.3/some/esm/feature/index.js", input);
-    console.log("🚀 ~ it ~ out:", out);
+    console.log(`🚀 ~ it ~ o:`, out);
     expect(out).toEqual(output);
   });
 });

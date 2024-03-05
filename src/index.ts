@@ -1,128 +1,124 @@
 import { cors } from "@elysiajs/cors";
-import { Elysia } from "elysia";
-import { router } from "./routes/router";
-import path from "path";
 import { jwt } from "@elysiajs/jwt";
-import { BunPkgConfig } from "./config";
-import { err } from "./templates";
+import consola from "consola";
+import { Elysia, t } from "elysia";
 import { getPort } from "get-port-please";
-import { npm } from "./features/npm";
-import { meta } from "./features/meta";
+import { markError } from "./common/err";
+import { BunPkgConfig, EMPTY_JWT_SECRET } from "./config.final";
 import { esm } from "./features/esm";
-
-// Object.assign(console, Consola);
-// // static file server
-// Bun.serve({
-//   port: 45456,
-//   hostname: "127.0.0.1",
-//   async fetch(req) {
-//     const pathname = new URL(req.url).pathname;
-//     const fileAt = path.join(BunPkgConfig.cacheDir, pathname);
-//     return new Response(Bun.file(fileAt));
-//   },
-// });
+import { meta } from "./features/meta";
+import { npm } from "./features/npm";
+import { user } from "./features/user";
+import { getErrHtml } from "./templates";
 
 const app = new Elysia();
 
+const PORT = await getPort(BunPkgConfig.server.port);
+
+const host: {
+  hostname?: string;
+  port: string | number;
+} = {
+  port: PORT,
+};
+if (BunPkgConfig.server.host) {
+  host.hostname = BunPkgConfig.server.host;
+}
+
 app
-  .use(cors(BunPkgConfig.cors))
-  .use(
-    jwt({
-      name: "jwt",
-      secret: BunPkgConfig.jwtSecret || "NONE",
-    }),
-  )
-  .get("favicon.ico", () => {
-    return new Response("");
-  })
-  .get("", ({ set }) => {
-    set.redirect = "/";
-  })
+  .use(cors(BunPkgConfig.server.cors))
+  .use(jwt(BunPkgConfig.jwt))
   .guard(
     {
-      async beforeHandle({ set, jwt, path, cookie: { auth } }) {
-        const hasJwt = BunPkgConfig.jwtSecret;
-        if (!hasJwt) return;
-        const isSign = /\/_sign\/\w+/.test(path);
+      async beforeHandle({ jwt, path, cookie: { auth } }) {
+        const enable = BunPkgConfig.jwt.secret !== EMPTY_JWT_SECRET;
+        if (!enable) return;
+        const isSign = path.startsWith("/_sign/");
         if (isSign) return;
 
         const profile = await jwt.verify(auth.value);
 
         if (!profile) {
-          set.status = 401;
-          return "Unauthorized";
+          throw markError("UnAuthorizedError");
         }
       },
     },
 
     (app) =>
       app
-        .get("/_sign/:name", async ({ jwt, set, cookie: { auth }, params }) => {
-          const userlist = BunPkgConfig.jwtUserList;
-          // TODO: sqlite user.db
-          if (!userlist.includes(params.name)) {
-            set.status = 401;
-            return "Unauthorized";
-          } else {
+        .post(
+          "/_sign/user",
+          async ({ jwt, cookie: { auth }, params, body }) => {
+            const come = {
+              name: body.name,
+              // TODO: 前端加密算法
+              pwd: body.pwd!,
+            };
+            const neo = await user.verify(come);
+            // 用户存在且密码正确
             auth.set({
-              value: await jwt.sign(params),
+              value: await jwt.sign(neo!),
               httpOnly: true,
               maxAge: 7 * 86400,
               path: "/",
             });
-
-            return "welcome";
-          }
-        })
-
-        .get("/browser/*", (ctx) => {
-          return "TODO: file browser";
-        })
+          },
+          {
+            body: t.Object({
+              name: t.String(),
+              pwd: t.String(),
+            }),
+          },
+        )
+        .post(
+          "/_sign/new",
+          async ({ jwt, cookie: { auth }, body }) => {
+            const come = {
+              name: body.name,
+              // TODO: 前端加密算法
+              pwd: body.pwd!,
+            };
+            const neo = await user.upsert(come);
+            auth.set({
+              value: await jwt.sign(neo!),
+              httpOnly: true,
+              maxAge: 7 * 86400,
+              path: "/",
+            });
+          },
+          {
+            body: t.Object({
+              name: t.String(),
+              pwd: t.String(),
+            }),
+          },
+        )
+        .use(npm)
+        .use(meta)
+        .use(esm)
         .get("/", () => {
           const resp = new Response(Bun.file("src/templates/BUNPKG.html"));
           resp.headers.set("Content-Type", "text/html; charset=utf-8");
           return resp;
         })
-        .use(npm)
-        .use(meta)
-        .use(esm),
-    // .use(router),
+        .get("/favicon.ico", () => {
+          return "";
+        }),
   )
 
-  .onError(({ code, error, path, set }) => {
+  .onError(({ code, error, path }) => {
     const resp = new Response(
-      err("reason", error?.message || error.toString()),
+      getErrHtml(`[${code}]`, error?.message || error.toString()),
     );
-    set.status = 404;
 
     resp.headers.set("Content-Type", "text/html; charset=utf-8");
-    console.log(
+    consola.error(
       `[Error]: ${new Date().toLocaleString()} ${path}\n`,
       error.stack,
       error.message,
     );
     return resp;
   })
-  .listen({
-    hostname: BunPkgConfig.HOST_NAME,
-    port: BunPkgConfig.PORT,
+  .listen(host, ({ hostname, port }) => {
+    console.info(`BUNPKG is Running at http://${hostname}:${port}`);
   });
-
-const black = /npmAuthToken|jwtSecret/;
-
-console.log(
-  `BUNPKG is Running at http://${BunPkgConfig.HOST_NAME}:${BunPkgConfig.PORT}`,
-  "with BunConfig :\n",
-  JSON.stringify(
-    Object.keys(BunPkgConfig).reduce(
-      (ok: any, key) => {
-        if (black.test(key)) return ok;
-        ok[key] = BunPkgConfig[key as keyof typeof BunPkgConfig];
-        return ok;
-      },
-      {} as typeof BunPkgConfig,
-    ),
-    null,
-    2,
-  ),
-);

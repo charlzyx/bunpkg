@@ -12,11 +12,15 @@ RUN bun install --production
 # case by DOCKER ENV
 RUN rm -rf .env
 
-ENV NODE_ENV production
-ENV NPM_REGISTRY_URL=https://registry.npmmirror.com/
-ENV NPM_AUTH_TOKEN=
-ENV CORS_ORIGIN=*
-ENV CACHE_DIR=/cache
+ENV PORT 4567
+ENV HOST 0.0.0.0
+ENV CORS_ORIGIN *
+ENV CACHE_DIR /cache
+ENV CACHE_MAX_SIZE 4
+ENV NPM_REGISTRY_URL https://registry.npmmirror.com/
+ENV NPM_MAX_TGZ_SIZE 100
+ENV NPM_AUTH_TOKEN '' 
+ENV JWT_SECRET ''
 
 VOLUME [ "/cache" ]
 

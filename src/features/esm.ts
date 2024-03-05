@@ -6,20 +6,34 @@ import {
   parsePkgByPathname,
   resolveTgz,
   resolveVersion,
+  queryPkgInfo,
 } from "../common/pkg";
-import { appendMetaHeaders, getPkgInfo, qs } from "./utils";
+import { appendMetaHeaders, qs } from "./utils";
 import { toESM } from "../experimental/esm";
-import { BunPkgConfig } from "../config";
+import { BunPkgConfig } from "../config.final";
 
 export const esm = (app: Elysia) => {
+  /**
+   * /esm/pkg[@version][/filename]
+   * @example
+   * /esm/react
+   * /esm/react@18.0.2
+   * /esm/react@18.0.2/index.js
+   *
+   * @params purge @type boolean 删除当前缓存
+   * @params main @type string 手动指定pkg当前入口文件, 如果没有给出 pathname 的话
+   */
   return app.get("/esm/*", async (ctx) => {
     const { query, path, set } = ctx;
+    if (query.purge !== undefined) {
+      sqliteCache.purge(path);
+      return Response.json({ message: `PURGE CACHE ${path} SUCCESS!` });
+    }
     const pathname = path.replace(/^\/esm/, "");
     // ---step.1.1 local:: base parse and valid
     const pkg = parsePkgByPathname(pathname);
     // ---step.1.2 query remote
-    const remote = await getPkgInfo(pkg.pkgName);
-    // console.log(`🚀 ~ step.1.2 ~ pkg:`, remote);
+    const remote = await queryPkgInfo(pkg.pkgName);
     // ---step.1.3 resolve version
     const version = resolveVersion(pkg, remote);
 
@@ -53,11 +67,13 @@ export const esm = (app: Elysia) => {
     } else {
       // no cached
       const [filebuffer, meta] = await resolveTgz(pkg, cacheKey);
+      const decoder = new TextDecoder();
       const bunpkgESM = toESM(
-        BunPkgConfig.origin,
+        BunPkgConfig.esm.origin,
         pkg.filename,
-        filebuffer.toString(),
+        decoder.decode(filebuffer),
       );
+      meta.size = Buffer.byteLength(bunpkgESM);
       await sqliteCache.write(cacheKey, meta, 0, bunpkgESM);
       const resp = new Response(bunpkgESM);
       appendMetaHeaders(resp, meta);

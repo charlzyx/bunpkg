@@ -6,18 +6,32 @@ import {
   parsePkgByPathname,
   resolveTgz,
   resolveVersion,
+  queryPkgInfo,
 } from "../common/pkg";
-import { appendMetaHeaders, getPkgInfo, qs } from "./utils";
+import { appendMetaHeaders, qs } from "./utils";
 
 export const npm = (app: Elysia) => {
+  /**
+   * /npm/pkg[@version][/filename]
+   * @example
+   * /npm/react
+   * /npm/react@18.0.2
+   * /npm/react@18.0.2/index.js
+   *
+   * @params purge @type boolean 删除当前缓存
+   * @params main @type string 手动指定pkg当前入口文件, 如果没有给出 pathname 的话
+   */
   return app.get("/npm/*", async (ctx) => {
     const { query, path, set } = ctx;
+    if (query.purge !== undefined) {
+      sqliteCache.purge(path);
+      return Response.json({ message: `PURGE CACHE ${path} SUCCESS!` });
+    }
     const pathname = path.replace(/^\/npm/, "");
     // ---step.1.1 local:: base parse and valid
     const pkg = parsePkgByPathname(pathname);
     // ---step.1.2 query remote
-    const remote = await getPkgInfo(pkg.pkgName);
-    // console.log(`🚀 ~ step.1.2 ~ pkg:`, remote);
+    const remote = await queryPkgInfo(pkg.pkgName);
     // ---step.1.3 resolve version
     const version = resolveVersion(pkg, remote);
 
@@ -28,7 +42,6 @@ export const npm = (app: Elysia) => {
     if (!pkg.filename) {
       const conf = getConfigOfVersion(pkg, remote);
       pkg.filename = findIndex(conf, { esm: false, main: query.main });
-      console.log(`🚀 ~ returnapp.get ~ c:`, conf, pkg);
     }
 
     const fullpath = `/npm/${pkg.pkgName}@${pkg.pkgVersion}${pkg.filename}`;

@@ -1,5 +1,6 @@
 import { Database, Statement } from "bun:sqlite";
 import { serialize, deserialize } from "v8";
+import { unlink } from "node:fs";
 
 export type SqlCacheOptions<Meta> = {
   /** name (in memory) of path string (file) */
@@ -80,6 +81,11 @@ const SQL = {
     UPDATE OR IGNORE cache
     SET dead = 1 WHERE key in kill
   `,
+  KillByKeyLike: `
+    WITH kill AS (SELECT key FROM cache WHERE key LIKE $like)
+    UPDATE OR IGNORE cache
+    SET dead = 1 WHERE key in kill
+  `,
   KillByExpired: `
     UPDATE OR IGNORE cache
     SET dead = 1
@@ -113,6 +119,7 @@ export class SqliteLRUCache<Meta> {
     Upsert: Statement<CacheItem<Meta>, Omit<QueryCacheItem, "$now">[]>;
     KillByLengthLimit: Statement<CacheItem<Meta>, { $maxLength: number }[]>;
     KillByLongestUseless: Statement<string, []>;
+    KillByKeyLike: Statement<CacheItem<Meta>, { $like: string }[]>;
     KillByExpired: Statement<CacheItem<Meta>, Pick<QueryCacheItem, "$now">[]>;
     SumOfSize: Statement<{ sum: number }, []>;
     ListOfDeath: Statement<CacheItem<Meta>, []>;
@@ -125,9 +132,10 @@ export class SqliteLRUCache<Meta> {
       maxByteSize = 1 * Math.pow(2, 30),
       onRemove = () => {},
     } = options;
-    console.log(`🚀 ~ SqliteLRUCache<Meta> ~ sqlite init a:`, database);
+    console.info(`SqliteLRUCacheinit at:`, database);
     this.db = new Database(database ?? ":memory:", { create: true });
     this.options = {
+      database,
       maxLen,
       maxByteSize,
       onRemove,
@@ -145,6 +153,7 @@ export class SqliteLRUCache<Meta> {
     this.STATEMENTS.Upsert = db.query(SQL.Upsert);
     this.STATEMENTS.KillByLengthLimit = db.query(SQL.KillByLengthLimit);
     this.STATEMENTS.KillByLongestUseless = db.query(SQL.KillByLongestUseless);
+    this.STATEMENTS.KillByKeyLike = db.query(SQL.KillByKeyLike);
     this.STATEMENTS.KillByExpired = db.query(SQL.KillByExpired);
     this.STATEMENTS.SumOfSize = db.query(SQL.SumOfSize);
     this.STATEMENTS.ListOfDeath = db.query(SQL.ListOfDeath);
@@ -192,6 +201,18 @@ export class SqliteLRUCache<Meta> {
       $access: now,
       $expire: item.expire ?? 0,
     });
+  }
+
+  purge(pathnameKey: string, wild?: boolean) {
+    if (wild) {
+      this.STATEMENTS.KillByKeyLike.run({ $like: `${pathnameKey}%` });
+      this.STATEMENTS.KillByKeyLike.run({ $like: `/npm/${pathnameKey}%` });
+      this.STATEMENTS.KillByKeyLike.run({ $like: `/esm/${pathnameKey}%` });
+      this.STATEMENTS.KillByKeyLike.run({ $like: `/meta/${pathnameKey}%` });
+    } else {
+      this.STATEMENTS.KillByKeyLike.run({ $like: `${pathnameKey}` });
+    }
+    this.execDelete("purge by key");
   }
 
   private execDelete(reason: string) {
