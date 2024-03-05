@@ -272,6 +272,7 @@ export const resolveTgz = async (
   }
 };
 
+// TODO: not found
 export const queryPkgInfo = async (packageName: string) => {
   const cacheKey = `pacakge-info${packageName}`;
   const cached = await sqliteCache.read(cacheKey);

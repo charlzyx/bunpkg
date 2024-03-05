@@ -17,6 +17,6 @@ export const purge = (app: Elysia) => {
   return app.get("/purge/*", async (ctx) => {
     const { path, query } = ctx;
     const pathname = path.replace(/^\/purge\//, "");
-    sqliteCache.purge(pathname, Boolean(query.wild));
+    sqliteCache.purge(pathname, query.wild !== undefined);
   });
 };

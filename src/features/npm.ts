@@ -9,6 +9,7 @@ import {
   queryPkgInfo,
 } from "../common/pkg";
 import { appendMetaHeaders, qs } from "./utils";
+import { markError } from "../common/err";
 
 export const npm = (app: Elysia) => {
   /**
@@ -32,6 +33,7 @@ export const npm = (app: Elysia) => {
     const pkg = parsePkgByPathname(pathname);
     // ---step.1.2 query remote
     const remote = await queryPkgInfo(pkg.pkgName);
+
     // ---step.1.3 resolve version
     const version = resolveVersion(pkg, remote);
 

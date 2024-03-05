@@ -45,5 +45,9 @@ export const appendMetaHeaders = (resp: Response, meta: IFileMeta) => {
 };
 
 export const simpleMeta = (x: TarFileItem) => {
-  return { name: x.name, lastModified: x.attrs?.mtime! };
+  return {
+    name: x.name,
+    size: x.data?.byteLength,
+    lastModified: x.attrs?.mtime!,
+  };
 };

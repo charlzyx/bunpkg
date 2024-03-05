@@ -6,7 +6,6 @@ const rankMap = {} as Record<string, Promise<Response> | void>;
 
 const get = (url: string, json = true) => {
   const maybe = rankMap[url];
-  console.log(`🚀 ~ get ~ url:`, url, maybe);
   if (maybe) {
     return maybe;
   } else {
