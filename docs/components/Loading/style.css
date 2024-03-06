@@ -1,0 +1,17 @@
+.loading-box {
+  padding: var(--vocs-space_4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all ease 0.3s;
+}
+
+.loading-box .hint {
+  font-size: var(--vocs-fontSize_12);
+}
+
+.loading-box .link {
+  color: var(--vocs-color_link);
+  text-decoration: underline;
+}
+

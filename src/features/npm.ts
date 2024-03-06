@@ -42,7 +42,7 @@ export const npm = (app: Elysia) => {
     }
     // ---step.1.4 find filename if not gived
     if (!pkg.filename) {
-      const conf = getConfigOfVersion(pkg, remote);
+      const conf = await getConfigOfVersion(pkg, remote);
       pkg.filename = findIndex(conf, { esm: false, main: query.main });
     }
 

@@ -1,5 +1,6 @@
+import consola from "consola";
 import { BunPkgConfig } from "../config.final";
-import { markError } from "./err";
+import { isTypedError, markError } from "./err";
 import { encodePkgName } from "./pkg";
 
 const rankMap = {} as Record<string, Promise<Response> | void>;
@@ -22,14 +23,38 @@ const get = (url: string, json = true) => {
       headers,
       signal: controller.signal,
     })
+      .then((resp) => {
+        if (resp.status !== 200) {
+          if (resp.status === 404) {
+            throw markError(
+              "NotFoundError",
+              "UpStream Error",
+              url,
+              `${resp.status} ${resp.statusText}`,
+            );
+          } else {
+            throw markError(
+              "InternalServerError",
+              "UpStream Request Failed, info:",
+              url,
+              `${resp.status} ${resp.statusText}`,
+            );
+          }
+        }
+        return resp;
+      })
       .then((resp) => (json ? resp.json() : resp))
       .catch((error) => {
-        throw markError(
-          "InternalServerError",
-          "Upstream Request Failed ",
-          url,
-          error?.toString(),
-        );
+        if (isTypedError(error)) {
+          throw error;
+        } else {
+          throw markError(
+            "InternalServerError",
+            "Upstream Request Failed ",
+            url,
+            error?.toString(),
+          );
+        }
       })
       .finally(() => {
         rankMap[url] = null!;

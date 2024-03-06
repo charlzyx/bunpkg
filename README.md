@@ -1,52 +1,251 @@
-# BUNPKG
+---
+layout: landing
+---
 
-> bunpkg is an alternative for, powered by bun! friendly for private deploy and file cache supported.
+import { HomePage } from 'vocs/components'
+import { MetaBrowser } from '../components/MetaBrowser'
+import { Codebox } from '../components/Codebox'
 
-## Diff unpkg
+<HomePage.Root>
+<HomePage.Tagline>bunpkg 是受到 [unpkg](https://unpkg.com) 启发而开发的一个 NPM CDN 加速服务器, <br />
+自部署更加友好, 并提供了额外本地文件缓存等功能</HomePage.Tagline>
+<HomePage.Tagline>bunpkg is an alternative for unpkg. <br />but friendly for self-host deploy and file cache supported </HomePage.Tagline>
+</HomePage.Root>
+
+- 💎 本地文件缓存: 压缩包(tgz) 和访问过的文件会使用 LRU 策略进行缓存, 并使用 sqlite 进行持久化
+  > Local File Cache: tarboll and visited file LRU cache, powered by sqlite
+- 🌈 支持私有仓库: 通过自定义的 `Authorization: Bearer ${TOKEN}` 来支持私有 NPM 仓库认证
+  > Private Package Supported: Agent with npmAuthToken for private npm packages.
+- 🚀 运行在 [Bun](https:bun.sh) 环境中, 超快乐!
+  > Powered by [Bun](https://bun.sh)! is fast!
+
+## 演练场 LiveDemo
+
+<MetaBrowser></MetaBrowser>
+
+## 使用示例 Usages
+
+### /npm/package@version/file
+
+<Codebox title="加载托管在 npm 上的任意文件">
+https://bunpkg.com/npm/package@version/file
+</Codebox>
+
+<Codebox title="举个例子">
+https://bunpkg.com/npm/jquery@3.6.4/dist/jquery.min.js
+</Codebox>
+
+<Codebox title="版本简写: 使用 range 代替具体的版本">
+https://bunpkg.com/npm/jquery@3.6/dist/jquery.min.js
+https://bunpkg.com/npm/jquery@3/dist/jquery.min.js
+</Codebox>
+
+<Codebox title="省略版本: 将会获取 @latest, 生产环境不推荐使用 ">
+https://bunpkg.com/npm/jquery/dist/jquery.min.js
+</Codebox>
+<Codebox title="省略文件名称: 会跟据 package.json 查找口文件, 生产环境不推荐使用">
+https://bunpkg.com/npm/jquery
+</Codebox>
+
+### /meta/package@version
+
+获取包的文件列表和对应版本的 package.json
+
+<Codebox title="举个例子">
+https://bunpkg.com/meta/jquery@3.6.4
+https://bunpkg.com/meta/jquery@3
+https://bunpkg.com/meta/jquery
+</Codebox>
+
+### /esm/package@version/file
+
+!IMOPRTANT 这是一个非常实验性的功能，避免在生产环境中使用
+
+如果不是 js 代码， 将会回退到 npm 版本
+
+<Codebox title="使用 ESM 格式加载托管在 npm 上的文件">
+https://bunpkg.com/esm/package@version/file
+</Codebox>
+
+<Codebox title="举个例子">
+https://bunpkg.com/esm/ofetch@1.3.3/dist/index.mjs
+</Codebox>
+
+<Codebox title="版本简写: 使用 range 代替具体的版本">
+https://bunpkg.com/esm/ofetch@1.3/dist/index.mjs
+https://bunpkg.com/esm/ofetch@1/dist/index.mjs
+</Codebox>
+
+<Codebox title="省略版本: 将会获取 @latest, 生产环境不推荐使用 ">
+https://bunpkg.com/esm/ofetch/dist/index.mjs
+</Codebox>
+
+<Codebox title="省略文件名称: 会跟据 package.json 查找口文件, 生产环境不推荐使用">
+https://bunpkg.com/esm/ofetch
+</Codebox>
+
+### 请求参数 Query Parameters
+
+`?purge`
+
+删除当前 url 路径的缓存
+<Codebox title="举个例子">
+https://bunpkg.com/esm/ofetch@1.3.3/dist/index.mjs?purge
+</Codebox>
+
+## 与 UNPKG 的对比
 
 | feture                                                                                          | bunpkg                                                                 | unpkg    |
 | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------- |
 | 302 supported, example [npmmirror.com](https://registry.npmmirror.com/react/-/react-18.2.0.tgz) | ✅                                                                     | 🚫       |
 | Local File Cache                                                                                | ✅ does nginx better, aha?                                             | 🚫       |
 | private Authorization header                                                                    | ✅                                                                     | 🚫       |
-| Browser UI                                                                                      | 🚫                                                                     | ✅       |
 | esm                                                                                             | ✅ by [Bun.Transpiler](https://bun.sh/docs/api/transpiler#scanimports) | ✅ babel |
 
-## .env
+### HTTP 缓存表现 HTTP Cache Behavior
 
-> maybe?: config file and persistence
+CDN 根据包含 npm 包版本的永久 URL 缓存文件。这是因为 npm 不允许包作者覆盖已经以相同版本号发布的不同包。
+
+> The CDN caches files based on their permanent URL, which includes the npm package version. This works because npm does not allow package authors to overwrite a package that has already been published with a different one at the same version number.
+
+浏览器被指示（通过 Cache-Control 标头）无限期（1 年）缓存资产。
+
+> Browsers are instructed (via the Cache-Control header) to cache assets indefinitely (1 year).
+
+未指定包版本号的 URL 会重定向到指定包版本号的 URL。如果未指定版本，这是最新版本，如果给出了 semver 版本，则是最大满意版本。重定向在 CDN 中缓存 10 分钟，在浏览器中缓存 1 分钟。
+
+> URLs that do not specify a package version number redirect to one that does. This is the latest version when no version is specified, or the maxSatisfying version when a semver version is given. Redirects are cached for 10 minutes at the CDN, 1 minute in browsers.
+
+如果您希望用户在您剪切新版本时能够使用最新版本，最好的策略是将版本号直接放在您的安装说明中的 URL 中。这也将更快地加载，因为我们不必解析最新版本并重定向它们。
+
+> If you want users to be able to use the latest version when you cut a new release, the best policy is to put the version number in the URL directly in your installation instructions. This will also load more quickly because we won't have to resolve the latest version and redirect them.
+
+### 磁盘缓存表现 Disk Cache Behavior
+
+使用 CACHE_DIR=./cache 或重新映射 docker volumns /cache 来观察 tarboll 和文件缓存；sqlite 的文件缓存管理器，使用 LRU 算法；
+
+> Use `CACHE_DIR=./cache` or remap docker volumns `/cache` to watch how tarboll and file cache; File Cache Manager by sqlite, with LRU algorithm;
+
+tarboll 和文件对半共享的默认限制为 4Gib 。您可以通过配置更改它
+
+> Default limit is `4Gib` for tarboll and files shared. Your Can change it by Config
+
+## 配置项 Config
+
+- .env
+
+默认值
 
 ```bash
-NPM_REGISTRY_URL=https://registry.npmmirror.com/
 PORT=4567
-HOST_NAME=127.0.0.1
-CORS_ORIGIN=*
-ORIGIN=
-CACHE_DIR=/cache
-CACHE_GIB=4
-NPM_AUTH_TOKEN=
+# HOST=0.0.0.0
+# CORS_ORIGIN=*
+CACHE_DIR=./.cache
+# CACHE_MAX_SIZE=4
+NPM_REGISTRY=https://registry.npmmirror.com/
+ESM_ORIGIN=https://bunpkg.com
+# NPM_MAX_TGZ_SIZE=100
+# NPM_AUTH_TOKEN=
+# JWT_SECRET=
+```
+
+- bun.config.ts
+
+```ts
+import path from "node:path";
+import { cors } from "@elysiajs/cors";
+
+export const BunPkgConfig = {
+  /** 服务器相关 */
+  server: {
+    /**
+     * 端口号
+     * @default process.env.PORT || 4567
+     */
+    port: 4567,
+    /**
+     * 主机名
+     * @default process.env.HOST || '0.0.0.0'
+     */
+    // host: "0.0.0.0",
+    /**
+     * 跨域配置
+     * @default {origin:  process.env.CORS_ORIGIN } || Paramaters<typeof cors[0]>
+     * @docuemnt see more https://elysiajs.com/plugins/cors.html#config
+     */
+    cors: {
+      origin: "*",
+    },
+  },
+  /** 缓存配置  */
+  cache: {
+    /**
+     * 缓存硬盘占用空间最大值 (Gib)
+     * @default process.env.CACHE_MAX_SIZE || 4
+     */
+    maxSize: 4,
+    /**
+     * 磁盘缓存目录位置
+     * @default process.env.CACHE_DIR || '/cache'
+     */
+    dir: "/cache",
+  },
+  /** NPM 配置 */
+  npm: {
+    /**
+     * 上游 NPM 源地址
+     * @default process.env.NPM_REGISTRY || 'https://registry.npmjs.org/'
+     */
+    registry: "https://registry.npmjs.org/",
+    /**
+     * 私有 npm 认证头
+     * Authorization: Bearer ${authToken}
+     */
+    // authToken: "",
+    /**
+     * 支持最大 npm tgz 压缩包尺寸 (mib)
+     * @default 100 (Mib)
+     * @default process.env.NPM_MAX_TGZ_SIZE || 100
+     **/
+    maxTgzSize: 100,
+  },
+  esm: {
+    /**
+     * ESM 前缀配置
+     * @default process.env.ESM_ORIGIN
+     */
+    origin: "",
+  },
+  /**
+   * 是否开启 JWT 认证, 只有有当前配置项并添加了 secret 的情况下才会开启
+   *  seemore https://elysiajs.com/plugins/jwt.html
+   */
+  jwt: {
+    //   /**
+    //    * 认证密钥
+    //    * @default process.env.JWT_SECRET
+    //    **/
+    //   secret: "",
+  },
+};
 ```
 
 ## docker
 
 ```bash
-# docker mode env is limited to
-# NPM_REGISTRY_URL=https://registry.npmmirror.com/
-# CORS_ORIGIN=*
-# ORIGIN=*
-# CACHE_GIB=4
-# NPM_AUTH_TOKEN=
 docker run -i -t -p 4567:4567 chaogpt/bunpkg
-docker run --env-file .env -i -t -p 4567:4567 -v /cache:./cache chaogpt/bunpkg
+docker run --env-file .env \
+  -i -t -p 4567:4567 \
+  -v /cache:./cache \
+  -v bunpkg.config.ts:/app/bunpkg.config.ts chaogpt/bunpkg
 ```
 
 ## Roadmap
 
 - [x] Persistence Cache (by sqlite)
-- [] More Private Config , like [esm.sh](https://github.com/esm-dev/esm.sh/blob/main/config.example.jsonc)
+- [x] Browser UI
 - [] Live Config Manager
 - [] Data Statistics
-- [] Browser UI
 
 ## Dev
 
@@ -55,10 +254,6 @@ bun dev
 # then
 # open http://localhost:4567
 ```
-
-## ScreenShot
-
-![bunpkg](./bunpkg.png)
 
 ## Powered by
 

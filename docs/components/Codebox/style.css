@@ -1,0 +1,19 @@
+
+.code-box {
+  border-radius: var(--vocs-borderRadius_4);
+  color: var(--vocs-color_text2);
+  font-family: var(--vocs-fontFamily_mono);
+  overflow: hidden;
+}
+
+.code-box .code-title {
+  padding: var(--vocs-space_8) var(--vocs-space_22);
+  background-color: var(--vocs-color_codeTitleBackground);
+}
+
+.code-box .code-body {
+  padding: var(--vocs-space_8) var(--vocs-space_22);
+  background-color: var(--vocs-color_codeBlockBackground);
+}
+
+

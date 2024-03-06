@@ -112,7 +112,7 @@ export const resolveVersion = (
       "No Package Info on Upstream",
     );
   }
-  const versions = Object.keys(versionsAndTags.versions);
+  const versions = Object.keys(versionsAndTags?.versions || {});
   const tags = versionsAndTags?.["dist-tags"] || versionsAndTags?.tags;
   if (range in tags) {
     range = tags[range];
@@ -180,9 +180,9 @@ export const cleanPkgConfig = (config: Record<string, string>) => {
   }, {});
 };
 
-export const getConfigOfVersion = (
+export const getConfigOfVersion = async (
   pkg: ReturnType<typeof parsePkgByPathname>,
-  info?: any,
+  remote?: any,
 ) => {
   const version = pkg.pkgVersion;
   const cacheKey = `config-of-version-${pkg.pkgName}-${version}`;
@@ -190,6 +190,7 @@ export const getConfigOfVersion = (
     return memoCache.get(cacheKey);
   }
 
+  const info = remote ?? (await queryPkgInfo(pkg.pkgName));
   const value =
     info?.versions && version in info.versions
       ? cleanPkgConfig(info.versions[version])
@@ -198,11 +199,10 @@ export const getConfigOfVersion = (
   return value;
 };
 
-export const getTarballOfVersion = (
+export const getTarballOfVersion = async (
   pkg: ReturnType<typeof parsePkgByPathname>,
 ) => {
-  // must be cached
-  const pkgConfig = getConfigOfVersion(pkg);
+  const pkgConfig = await getConfigOfVersion(pkg);
   const npmRegistryURL = BunPkgConfig.npm.registry;
   const tarballName = isScopedPkgName(pkg.pkgName)
     ? pkg.pkgName.split("/")[1]
@@ -219,7 +219,7 @@ export const getTarballOfVersion = (
 export const queryMetaList = async (
   pkg: ReturnType<typeof parsePkgByPathname>,
 ): Promise<TarFileItem[]> => {
-  const [tgzName, tgzUrl, distInfo] = getTarballOfVersion(pkg);
+  const [tgzName, tgzUrl, distInfo] = await getTarballOfVersion(pkg);
   const has = await sqliteCache.read(tgzName);
   if (!has) {
     const upstram = await fetchPackageTarball(tgzUrl);
@@ -253,7 +253,7 @@ export const resolveTgz = async (
   pkg: ReturnType<typeof parsePkgByPathname>,
   cacheKey?: string,
 ): Promise<[Uint8Array, IFileMeta]> => {
-  const [tgzName] = getTarballOfVersion(pkg);
+  const [tgzName] = await getTarballOfVersion(pkg);
   const fileList = await queryMetaList(pkg);
   const file = fileList.find((x) => x.name === `package${pkg.filename}`);
   if (!file) {
@@ -272,7 +272,6 @@ export const resolveTgz = async (
   }
 };
 
-// TODO: not found
 export const queryPkgInfo = async (packageName: string) => {
   const cacheKey = `pacakge-info${packageName}`;
   const cached = await sqliteCache.read(cacheKey);

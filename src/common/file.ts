@@ -56,6 +56,16 @@ export const getIntegrityBy = (
     .join(delimiter);
 };
 
+/**
+ * @reference
+ * -MDN: Common MIME types
+ * https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+ * - Difference between application/x-javascript and text/javascript content types
+ * https://stackoverflow.com/questions/9664282/difference-between-application-x-javascript-and-text-javascript-content-types
+ * -  the MIME-Type of TypeScript?
+ * https://stackoverflow.com/questions/13213787/whats-the-mime-type-of-typescript
+ */
+
 mime.define(
   {
     "text/plain": [
@@ -65,9 +75,12 @@ mime.define(
       "makefile",
       "patents",
       "readme",
-      "ts",
       "flow",
     ],
+    "text/x-typescript": ["ts", "cts", "mts", "tsx"],
+    // 虽然 deno 的是使用了 application/typescript ， 但是在浏览器中会认为是二进制下载
+    // 考虑到我们是在浏览器中使用场景比较多， 就使用了  text/x-typescript 这个标记
+    // "application/typescript": ["ts", "cts", "mts", "tsx"],
   },
   /* force */ true,
 );

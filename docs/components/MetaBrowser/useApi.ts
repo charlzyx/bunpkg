@@ -1,40 +1,57 @@
 import { useRequest } from "ahooks";
 import { ofetch } from "ofetch";
 import { useEffect } from "react";
+import validate from "validate-npm-package-name";
 
-const fetchFileList = (pkg: { name: string; ver: string }): Promise<
-  { name: string; size: number }[]
-> => ofetch(`/meta/${pkg.name}@${pkg.ver}`);
+const fetchFileList = (pkg: { name: string; ver: string }): Promise<{
+  files: { name: string; size: number }[];
+  info: {
+    version?: string;
+    name?: string;
+  };
+}> => ofetch(`/meta/${pkg.name}@${pkg.ver}`);
 
-const fetchVersions = (pkg: string): Promise<string[]> =>
-  ofetch(`/meta/${pkg}?versions`);
+const fetchVersions = (
+  pkg: string,
+): Promise<{
+  versions: string[];
+  tags: Record<string, string>;
+}> => ofetch(`/meta/${pkg}?versions`);
 
-export const usePkgFileList = (pkg: string, ver: string) => {
-  const { data, error, loading, run } = useRequest(fetchFileList, {
+export const usePkgFileList = (pkgName: string, ver: string) => {
+  const resp = useRequest(fetchFileList, {
     manual: true,
   });
 
   useEffect(() => {
-    if (!pkg) return;
-    run({
-      name: pkg.trim(),
-      ver: ver ? ver.trim() : ver,
+    const name = pkgName.trim();
+    if (!validate(name)) {
+      resp.mutate({ files: [], info: {} });
+      return;
+    }
+    if (!ver) return;
+    resp.run({
+      name: name,
+      ver: ver.trim(),
     });
-  }, [pkg, ver]);
+  }, [pkgName, ver, resp.run, resp.mutate]);
 
-  return data;
+  return resp;
 };
 
-export const usePkgVesions = (pkg: string) => {
-  const { data, error, loading, run } = useRequest(fetchVersions, {
+export const usePkgVesions = (pkgName: string) => {
+  const resp = useRequest(fetchVersions, {
     manual: true,
   });
 
   useEffect(() => {
-    if (pkg.trim()) {
-      run(pkg.trim());
+    const name = pkgName?.trim();
+    if (!validate(name)) {
+      resp.mutate({ tags: {}, versions: [] });
+      return;
     }
-  }, [pkg]);
+    resp.run(pkgName.trim());
+  }, [pkgName, resp.run, resp.mutate]);
 
-  return data;
+  return resp;
 };

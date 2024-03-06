@@ -9,7 +9,7 @@ import {
   queryPkgInfo,
 } from "../common/pkg";
 import { appendMetaHeaders, qs } from "./utils";
-import { toESM } from "../experimental/esm";
+import { toESM, isSupportedESM } from "../experimental/esm";
 import { BunPkgConfig } from "../config.final";
 
 export const esm = (app: Elysia) => {
@@ -42,7 +42,7 @@ export const esm = (app: Elysia) => {
     }
     // ---step.1.4 find filename if not gived
     if (!pkg.filename) {
-      const conf = getConfigOfVersion(pkg, remote);
+      const conf = await getConfigOfVersion(pkg, remote);
       pkg.filename = findIndex(conf, { esm: true, main: query.main });
     }
 
@@ -67,17 +67,24 @@ export const esm = (app: Elysia) => {
     } else {
       // no cached
       const [filebuffer, meta] = await resolveTgz(pkg, cacheKey);
-      const decoder = new TextDecoder();
-      const bunpkgESM = toESM(
-        BunPkgConfig.esm.origin,
-        pkg.filename,
-        decoder.decode(filebuffer),
-      );
-      meta.size = Buffer.byteLength(bunpkgESM);
-      await sqliteCache.write(cacheKey, meta, 0, bunpkgESM);
-      const resp = new Response(bunpkgESM);
-      appendMetaHeaders(resp, meta);
-      return resp;
+      if (isSupportedESM(pkg.filename)) {
+        const decoder = new TextDecoder();
+        const bunpkgESM = toESM(
+          BunPkgConfig.esm.origin,
+          pkg.filename,
+          decoder.decode(filebuffer),
+        );
+        meta.size = Buffer.byteLength(bunpkgESM);
+        await sqliteCache.write(cacheKey, meta, 0, bunpkgESM);
+        const resp = new Response(bunpkgESM);
+        appendMetaHeaders(resp, meta);
+        return resp;
+      } else {
+        await sqliteCache.write(cacheKey, meta, 0, filebuffer);
+        const resp = new Response(filebuffer);
+        appendMetaHeaders(resp, meta);
+        return resp;
+      }
     }
   });
 };

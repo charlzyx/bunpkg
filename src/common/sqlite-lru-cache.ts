@@ -205,10 +205,10 @@ export class SqliteLRUCache<Meta> {
 
   purge(pathnameKey: string, wild?: boolean) {
     if (wild) {
-      this.STATEMENTS.KillByKeyLike.run({ $like: `${pathnameKey}%` });
-      this.STATEMENTS.KillByKeyLike.run({ $like: `/npm/${pathnameKey}%` });
-      this.STATEMENTS.KillByKeyLike.run({ $like: `/esm/${pathnameKey}%` });
-      this.STATEMENTS.KillByKeyLike.run({ $like: `/meta/${pathnameKey}%` });
+      this.STATEMENTS.KillByKeyLike.run({ $like: `${pathnameKey}` });
+      this.STATEMENTS.KillByKeyLike.run({ $like: `/npm/${pathnameKey}@%` });
+      this.STATEMENTS.KillByKeyLike.run({ $like: `/esm/${pathnameKey}@%` });
+      this.STATEMENTS.KillByKeyLike.run({ $like: `/meta/${pathnameKey}@%` });
     } else {
       this.STATEMENTS.KillByKeyLike.run({ $like: `${pathnameKey}` });
     }

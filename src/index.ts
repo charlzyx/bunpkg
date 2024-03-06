@@ -9,7 +9,7 @@ import { esm } from "./features/esm";
 import { meta } from "./features/meta";
 import { npm } from "./features/npm";
 import { user } from "./features/user";
-import { getErrHtml } from "./templates";
+import { staticPlugin } from "@elysiajs/static";
 
 const app = new Elysia();
 
@@ -28,6 +28,7 @@ if (BunPkgConfig.server.host) {
 app
   .use(cors(BunPkgConfig.server.cors))
   .use(jwt(BunPkgConfig.jwt))
+  .use(staticPlugin({ assets: "docs/dist", prefix: "/" }))
   .guard(
     {
       async beforeHandle({ jwt, path, cookie: { auth } }) {
@@ -96,28 +97,24 @@ app
         .use(npm)
         .use(meta)
         .use(esm)
-        .get("/", () => {
-          const resp = new Response(Bun.file("src/templates/BUNPKG.html"));
-          resp.headers.set("Content-Type", "text/html; charset=utf-8");
-          return resp;
-        })
+        // .get("/", () => {
+        //   const resp = new Response(Bun.file("src/templates/BUNPKG.html"));
+        //   resp.headers.set("Content-Type", "text/html; charset=utf-8");
+        //   return resp;
+        // })
         .get("/favicon.ico", () => {
           return "";
         }),
   )
 
-  .onError(({ code, error, path }) => {
-    const resp = new Response(
-      getErrHtml(`[${code}]`, error?.message || error.toString()),
-    );
-
-    resp.headers.set("Content-Type", "text/html; charset=utf-8");
+  .onError(({ code, error, path, set }) => {
+    // resp.headers.set("Content-Type", "text/html; charset=utf-8");
     consola.error(
       `[Error]: ${new Date().toLocaleString()} ${path}\n`,
       error.stack,
       error.message,
     );
-    return resp;
+    return error;
   })
   .listen(host, ({ hostname, port }) => {
     console.info(`BUNPKG is Running at http://${hostname}:${port}`);

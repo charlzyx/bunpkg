@@ -5,6 +5,7 @@ export const Flex: React.FC<
     flex?: React.CSSProperties["flex"];
     justify?: React.CSSProperties["justifyContent"];
     align?: React.CSSProperties["alignItems"];
+    center?: boolean;
     className?: string;
   }>
 > = (props) => {
@@ -12,8 +13,16 @@ export const Flex: React.FC<
     return {
       display: "flex",
       flex: props.flex,
-      justifyContent: props.justify,
-      alignItems: props.align,
+      justifyContent: props.justify
+        ? props.justify
+        : props.center
+          ? "center"
+          : undefined,
+      alignItems: props.align
+        ? props.align
+        : props.center
+          ? "center"
+          : undefined,
     };
   }, [props]);
 

@@ -47,6 +47,12 @@ export enum ErrorCodes {
   BanPackageError = "BanPackageError",
 }
 
+export const isTypedError = (
+  x: any,
+): x is (typeof TypedError)[keyof typeof TypedError] => {
+  return Boolean(Object.values(TypedError).find((C) => x instanceof C));
+};
+
 export const markError = (
   code: keyof typeof TypedError,
   ...labels: (string | undefined)[]

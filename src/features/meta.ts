@@ -6,6 +6,7 @@ import {
   queryMetaList,
   resolveVersion,
   queryPkgInfo,
+  getConfigOfVersion,
 } from "../common/pkg";
 import { simpleMeta } from "./utils";
 
@@ -45,9 +46,11 @@ export const meta = (app: Elysia) => {
           return Response.json(cached);
         } else {
           const versions = Object.keys(remote.versions || {});
+          const tags = remote.tags ?? (remote?.["dist-tags"] || {});
           versions.sort(Bun.semver.order).reverse();
-          await sqliteCache.write(cacheKey, versions, 1000 * 60);
-          return Response.json(versions);
+          const info = { versions, tags };
+          await sqliteCache.write(cacheKey, info, 1000 * 60);
+          return Response.json(info);
         }
       }
       // ---step.1.3 resolve version
@@ -76,6 +79,7 @@ export const meta = (app: Elysia) => {
       } else {
         // no cached
         const metaList: TarFileItem[] = await queryMetaList(pkg);
+        const pkgConfig = await getConfigOfVersion(pkg);
         const prefix = path
           .replace(/\/meta\//, "package")
           .replace(pkg.pkgSpec, "");
@@ -92,9 +96,10 @@ export const meta = (app: Elysia) => {
         if (list.length === 0) {
           list = metaList.map(simpleMeta);
         }
+        const info = { files: list, info: pkgConfig };
 
-        sqliteCache.write(cacheKey, list);
-        const resp = Response.json(list as any);
+        sqliteCache.write(cacheKey, info);
+        const resp = Response.json(info);
         return resp;
       }
     },

@@ -1,5 +1,5 @@
 const transpiler = new Bun.Transpiler({
-  loader: "js",
+  loader: "tsx",
 });
 const resolveDots = (origin: string, withdot: string, relative: string) => {
   // keep slash free
@@ -21,6 +21,9 @@ const resolveDots = (origin: string, withdot: string, relative: string) => {
 
   return `${realOrigin}/${plist.filter(Boolean).join("/")}`;
 };
+
+export const isSupportedESM = (x: string) =>
+  /\.(ts|tsx|cts|mts|js|jsx|mjs)$/.test(x);
 
 // const reLink = (x: string) => {
 //   if (!/\./.test(x)) return `/${x}`;
