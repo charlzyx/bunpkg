@@ -11,7 +11,7 @@ const get = (url: string, json = true) => {
     return maybe;
   } else {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort(), 30 * 1000);
 
     const headers: Record<string, string> = {
       "User-Agent": "bunpkg",

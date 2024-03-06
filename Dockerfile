@@ -1,3 +1,15 @@
+FROM node:18-alpine as docbuilder
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories
+# vocs build needs git
+RUN apk add git
+
+WORKDIR /web
+
+COPY package.json tsconfig.json vocs.config.ts ./
+COPY docs docs
+
+RUN npm i --registry=https://registry.npmmirror.com && npm run docs:build 
+
 FROM oven/bun:slim
 # FROM oven/bun
 WORKDIR /app
@@ -6,9 +18,10 @@ WORKDIR /app
 
 COPY package.json bun.lockb bunfig.toml tsconfig.json bunpkg.sh ./
 COPY src src
+COPY --from=docbuilder /web/docs/dist ./docs/dist 
 
+# build server
 RUN bun install --production
-
 # case by DOCKER ENV
 RUN rm -rf .env
 

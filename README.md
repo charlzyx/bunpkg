@@ -7,7 +7,7 @@ import { MetaBrowser } from '../components/MetaBrowser'
 import { Codebox } from '../components/Codebox'
 
 <HomePage.Root>
-<HomePage.Tagline>bunpkg 是受到 [unpkg](https://unpkg.com) 启发而开发的一个 NPM CDN 加速服务器, <br />
+<HomePage.Tagline>[bunpkg](https://bunpkg.pages.dev) 是受到 [unpkg](https://unpkg.com) 启发而开发的一个 NPM CDN 加速服务器, <br />
 自部署更加友好, 并提供了额外本地文件缓存等功能</HomePage.Tagline>
 <HomePage.Tagline>bunpkg is an alternative for unpkg. <br />but friendly for self-host deploy and file cache supported </HomePage.Tagline>
 </HomePage.Root>

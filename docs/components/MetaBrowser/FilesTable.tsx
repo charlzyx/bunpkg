@@ -82,7 +82,7 @@ export const FileTable = (props: {
       <div className="nav-box">
         <Flex justify="space-between">
           <Nav link={prefix} onClickLink={setPrefix}></Nav>
-          <div>@{resp?.data?.info.version}</div>
+          <div>@{resp?.data?.info?.version}</div>
         </Flex>
       </div>
       <Loading resp={resp} empty={props.pkgName ? "" : "Empty"}>
