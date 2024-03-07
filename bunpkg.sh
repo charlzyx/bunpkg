@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-bun src/index.ts
+NODE_ENV=production bun src/index.ts

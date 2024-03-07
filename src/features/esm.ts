@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { sqliteCache } from "../common/cache";
+import { memoCache, sqliteCache } from "../common/cache";
 import {
   findIndex,
   getConfigOfVersion,
@@ -29,42 +29,47 @@ export const esm = (app: Elysia) => {
       sqliteCache.purge(path);
       return Response.json({ message: `PURGE CACHE ${path} SUCCESS!` });
     }
-    const pathname = path.replace(/^\/esm/, "");
-    // ---step.1.1 local:: base parse and valid
-    const pkg = parsePkgByPathname(pathname);
-    // ---step.1.2 query remote
-    const remote = await queryPkgInfo(pkg.pkgName);
-    // ---step.1.3 resolve version
-    const version = resolveVersion(pkg, remote);
-
-    if (version !== pkg.pkgVersion) {
-      pkg.pkgVersion = version;
-    }
-    // ---step.1.4 find filename if not gived
-    if (!pkg.filename) {
-      const conf = await getConfigOfVersion(pkg, remote);
-      pkg.filename = findIndex(conf, { esm: true, main: query.main });
-    }
-
-    const fullpath = `/esm/${pkg.pkgName}@${pkg.pkgVersion}${pkg.filename}`;
-
-    set.headers["Cache-Control"] = "public, max-age=31536000"; // 1 year
-    set.headers["Cache-Tag"] = "missing, missing-entry";
-
-    // ---step.1.5 should 302
-    if (path !== fullpath) {
-      set.redirect = fullpath + qs(query);
-      return;
-    }
     const cacheKey = path;
 
-    const maybe = await sqliteCache.read(cacheKey);
+    const maybe = memoCache.get(cacheKey) || (await sqliteCache.read(cacheKey));
+
     if (maybe) {
-      // cached
+      // transform sqlite cached  to memoCache
+      if (!memoCache.has(cacheKey)) {
+        memoCache.set(cacheKey, maybe);
+      }
       const resp = new Response(maybe.file);
       appendMetaHeaders(resp, maybe?.meta);
       return resp;
     } else {
+      const pathname = path.replace(/^\/esm/, "");
+      // ---step.1.1 local:: base parse and valid
+      const pkg = parsePkgByPathname(pathname);
+      // ---step.1.2 query remote
+      const remote = await queryPkgInfo(pkg.pkgName);
+      // ---step.1.3 resolve version
+      const version = resolveVersion(pkg, remote);
+
+      if (version !== pkg.pkgVersion) {
+        pkg.pkgVersion = version;
+      }
+      // ---step.1.4 find filename if not gived
+      if (!pkg.filename) {
+        const conf = await getConfigOfVersion(pkg, remote);
+        pkg.filename = findIndex(conf, { esm: true, main: query.main });
+      }
+
+      const fullpath = `/esm/${pkg.pkgName}@${pkg.pkgVersion}${pkg.filename}`;
+
+      set.headers["Cache-Control"] = "public, max-age=31536000"; // 1 year
+      set.headers["Cache-Tag"] = "missing, missing-entry";
+
+      // ---step.1.5 should 302
+      if (path !== fullpath) {
+        set.redirect = fullpath + qs(query);
+        return;
+      }
+
       // no cached
       const [filebuffer, meta] = await resolveTgz(pkg, cacheKey);
       if (isSupportedESM(pkg.filename)) {
