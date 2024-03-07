@@ -1,6 +1,22 @@
+## v2.0.1...v2.0.0
+
+[compare changes](https://github.com/charlzyx/bunpkg/compare/v2.0.1...v2.0.0)
+
+### 🩹 Fixes
+
+- 🐛 webpage copy feature ([08ab261](https://github.com/charlzyx/bunpkg/commit/08ab261))
+
+### ❤️ Contributors
+
+- Charlzyx <charlzyx@qq.com>
+
 ## v2.0.0...v1.1.1
 
 [compare changes](https://github.com/charlzyx/bunpkg/compare/v2.0.0...v1.1.1)
+
+### 🔥 Performance
+
+- ⚡️ perfermance, cached visit 100x faster! ([b5c39c5](https://github.com/charlzyx/bunpkg/commit/b5c39c5))
 
 ### 🚀 Enhancements
 
@@ -9,6 +25,7 @@
 
 ### 🩹 Fixes
 
+- 🐛 missing docs build, and docs update ([16198f3](https://github.com/charlzyx/bunpkg/commit/16198f3))
 - 🐛 cors origin config fix ([663e3b3](https://github.com/charlzyx/bunpkg/commit/663e3b3))
 
 ### 💅 Refactors

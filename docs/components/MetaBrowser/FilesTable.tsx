@@ -8,8 +8,31 @@ import { Icons } from "../Icons";
 import toast, { Toaster } from "react-hot-toast";
 import { Flex } from "../Flex";
 
+// https://stackoverflow.com/questions/51805395/navigator-clipboard-is-undefined
 const copy = (text: string) => {
-  navigator.clipboard.writeText(text);
+  // Navigator clipboard api needs a secure context (https)
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text);
+  } else {
+    // Use the 'out of viewport hidden text area' trick
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // Move textarea out of the viewport so it's not visible
+    textArea.style.position = "absolute";
+    textArea.style.left = "-999999px";
+
+    document.body.prepend(textArea);
+    textArea.select();
+
+    try {
+      document.execCommand("copy");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      textArea.remove();
+    }
+  }
 };
 
 const useLinks = (link: string) => {
