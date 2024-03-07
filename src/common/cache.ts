@@ -4,7 +4,7 @@ import { BunPkgConfig } from "../config.final";
 import path from "node:path";
 import { LRUCache } from "lru-cache";
 import { BunFile } from "bun";
-import { serialize, deserialize } from "v8";
+import { serialize } from "v8";
 import { markError } from "./err";
 
 const database = path.join(BunPkgConfig.cache.dir, `cache.sqlite`);
@@ -100,14 +100,15 @@ export const sqliteCache = {
 };
 
 export const memoLRU = new LRUCache<string, any>({
-  max: 1000,
-  // 1min
-  ttl: 1000 * 60,
+  max: 2000,
+  // 5min
+  ttl: 5000 * 60,
   sizeCalculation: (value) => {
-    return Buffer.byteLength(value as any) || 1;
+    const len = Buffer.byteLength(serialize(value)) || 1;
+    return len;
   },
-  // 500 Mib
-  maxSize: 500 * Math.pow(2, 20),
+  // 1 Gib
+  maxSize: Math.pow(2, 30),
 });
 
 export const memoCache = {
@@ -115,9 +116,9 @@ export const memoCache = {
     return memoLRU.has(k);
   },
   set(k: string, v: any) {
-    return memoLRU.set(k, serialize(v));
+    return memoLRU.set(k, v);
   },
   get(k: string) {
-    return deserialize(memoLRU.get(k));
+    return memoLRU.get(k);
   },
 };
