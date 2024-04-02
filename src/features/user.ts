@@ -1,4 +1,4 @@
-import Database, { Statement } from "bun:sqlite";
+import Database, { type Statement } from "bun:sqlite";
 import path from "node:path";
 import { markError } from "../common/err";
 import { BunPkgConfig } from "../config.final";

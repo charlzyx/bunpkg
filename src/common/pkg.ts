@@ -2,12 +2,12 @@ import { resolve, semver, version } from "bun";
 import validateNpmPackageName from "validate-npm-package-name";
 import { BunPkgConfig } from "../config.final";
 import { unlink } from "node:fs";
-import { IFileMeta } from "../features/utils";
+import type { IFileMeta } from "../features/utils";
 import { memoCache, sqliteCache } from "./cache";
 import { markError } from "./err";
 import { fetchPackageInfo, fetchPackageTarball } from "./fetch";
 import { getContentType, getIntegrityBy, tgzReader } from "./file";
-import { TarFileItem } from "nanotar";
+import type { TarFileItem } from "nanotar";
 
 const helper = {
   packagePathnameFormat: /^\/((?:@[^/@]+\/)?[^/@]+)(?:@([^/]+))?(\/.*)?$/,

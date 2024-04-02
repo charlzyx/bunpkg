@@ -1,4 +1,4 @@
-import { BunFile } from "bun";
+import type { BunFile } from "bun";
 import path from "node:path";
 import mime from "mime";
 import { parseTar } from "nanotar";

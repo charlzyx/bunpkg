@@ -3,8 +3,8 @@ import { SqliteLRUCache } from "./sqlite-lru-cache";
 import { BunPkgConfig } from "../config.final";
 import path from "node:path";
 import { LRUCache } from "lru-cache";
-import { BunFile } from "bun";
-import { serialize } from "v8";
+import type { BunFile } from "bun";
+import { serialize } from "node:v8";
 import { markError } from "./err";
 
 const database = path.join(BunPkgConfig.cache.dir, `cache.sqlite`);

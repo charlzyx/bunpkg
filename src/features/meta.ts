@@ -1,5 +1,5 @@
-import { Elysia, t } from "elysia";
-import { TarFileItem } from "nanotar";
+import { type Elysia, t } from "elysia";
+import type { TarFileItem } from "nanotar";
 import { memoCache, sqliteCache } from "../common/cache";
 import {
   parsePkgByPathname,
@@ -8,7 +8,7 @@ import {
   queryPkgInfo,
   getConfigOfVersion,
 } from "../common/pkg";
-import { simpleMeta } from "./utils";
+import { queryHasKey, simpleMeta } from "./utils";
 
 export const meta = (app: Elysia) => {
   /**
@@ -30,7 +30,7 @@ export const meta = (app: Elysia) => {
     "/meta/*",
     async (ctx) => {
       const { query, path, set } = ctx;
-      if (query.purge !== undefined) {
+      if (queryHasKey(query, "purge")) {
         sqliteCache.purge(path);
         return Response.json({ message: `PURGE CACHE ${path} SUCCESS!` });
       }
@@ -39,7 +39,7 @@ export const meta = (app: Elysia) => {
       const maybe =
         memoCache.get(cacheKey) || (await sqliteCache.read(cacheKey));
 
-      if (maybe) {
+      if (maybe && !queryHasKey(query, "versions")) {
         // transform sqlite cached  to memoCache
         if (!memoCache.has(cacheKey)) {
           memoCache.set(cacheKey, maybe);
@@ -52,7 +52,8 @@ export const meta = (app: Elysia) => {
         const pkg = parsePkgByPathname(pathname);
         // ---step.1.2 query remote
         const remote = await queryPkgInfo(pkg.pkgName);
-        if (query.versions !== undefined) {
+
+        if (queryHasKey(query, "versions")) {
           const cacheKey = `${path}?versions`;
           const cached = await sqliteCache.read(cacheKey);
           if (cached) {

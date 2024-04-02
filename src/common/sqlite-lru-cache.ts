@@ -1,5 +1,5 @@
-import { Database, Statement } from "bun:sqlite";
-import { serialize, deserialize } from "v8";
+import { Database, type Statement } from "bun:sqlite";
+import { serialize, deserialize } from "node:v8";
 
 export type SqlCacheOptions<Meta> = {
   /** name (in memory) of path string (file) */

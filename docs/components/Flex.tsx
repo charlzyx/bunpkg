@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import type React from "react";
+import { useMemo } from "react";
 
 export const Flex: React.FC<
   React.PropsWithChildren<{

@@ -1,5 +1,6 @@
-import { Elysia } from "elysia";
+import type { Elysia } from "elysia";
 import { sqliteCache } from "../common/cache";
+import { queryHasKey } from "./utils";
 
 export const purge = (app: Elysia) => {
   /**
@@ -17,6 +18,6 @@ export const purge = (app: Elysia) => {
   return app.get("/purge/*", async (ctx) => {
     const { path, query } = ctx;
     const pathname = path.replace(/^\/purge\//, "");
-    sqliteCache.purge(pathname, query.wild !== undefined);
+    sqliteCache.purge(pathname, queryHasKey(query, "wild"));
   });
 };

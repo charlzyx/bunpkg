@@ -1,4 +1,4 @@
-import { TarFileItem } from "nanotar";
+import type { TarFileItem } from "nanotar";
 import path from "node:path";
 
 export type IFileMeta = {
@@ -50,4 +50,8 @@ export const simpleMeta = (x: TarFileItem) => {
     size: x.data?.byteLength,
     lastModified: x.attrs?.mtime!,
   };
+};
+
+export const queryHasKey = (query: Record<string, any>, key: string) => {
+  return Object.hasOwn(query, key);
 };

@@ -1,6 +1,3 @@
-import path from "node:path";
-import { cors } from "@elysiajs/cors";
-
 export const BunPkgConfig = {
   /** 服务器相关 */
   server: {

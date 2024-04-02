@@ -1,4 +1,4 @@
-import React, { MouseEventHandler, useMemo } from "react";
+import React, { type MouseEventHandler, useMemo } from "react";
 import { Loading } from "../Loading";
 import { usePrefixData } from "./hooks";
 import "./style.css";

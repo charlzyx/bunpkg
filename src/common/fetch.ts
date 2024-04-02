@@ -1,4 +1,3 @@
-import consola from "consola";
 import { BunPkgConfig } from "../config.final";
 import { isTypedError, markError } from "./err";
 import { encodePkgName } from "./pkg";

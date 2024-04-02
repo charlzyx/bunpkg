@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import type React from "react";
 
 const sty: React.CSSProperties = {
   display: "inline-block",

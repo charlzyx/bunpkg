@@ -12,6 +12,7 @@ import { user } from "./features/user";
 import { staticPlugin } from "@elysiajs/static";
 
 const app = new Elysia();
+const noop = () => "";
 
 const PORT = await getPort(BunPkgConfig.server.port);
 
@@ -102,9 +103,9 @@ app
         //   resp.headers.set("Content-Type", "text/html; charset=utf-8");
         //   return resp;
         // })
-        .get("/favicon.ico", () => {
-          return "";
-        }),
+        .get("/favicon.ico", noop)
+        .get("/apple-touch-icon.png", noop)
+        .get("/apple-touch-icon-precomposed.png", noop),
   )
 
   .onError(({ code, error, path, set }) => {

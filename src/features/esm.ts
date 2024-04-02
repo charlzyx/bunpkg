@@ -1,4 +1,4 @@
-import { Elysia } from "elysia";
+import type { Elysia } from "elysia";
 import { memoCache, sqliteCache } from "../common/cache";
 import {
   findIndex,
@@ -8,7 +8,7 @@ import {
   resolveVersion,
   queryPkgInfo,
 } from "../common/pkg";
-import { appendMetaHeaders, qs } from "./utils";
+import { appendMetaHeaders, qs, queryHasKey } from "./utils";
 import { toESM, isSupportedESM } from "../experimental/esm";
 import { BunPkgConfig } from "../config.final";
 
@@ -25,7 +25,7 @@ export const esm = (app: Elysia) => {
    */
   return app.get("/esm/*", async (ctx) => {
     const { query, path, set } = ctx;
-    if (query.purge !== undefined) {
+    if (queryHasKey(query, "purge")) {
       sqliteCache.purge(path);
       return Response.json({ message: `PURGE CACHE ${path} SUCCESS!` });
     }

@@ -1,4 +1,4 @@
-import { useMap, useRequest } from "ahooks";
+import { useMap, type useRequest } from "ahooks";
 
 import "./style.css";
 import { useMemo } from "react";
